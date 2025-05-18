@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 body {
   margin: 0;
   font-family: sans-serif;
@@ -10,5 +14,12 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: white;
+  /* color: white; */
+}@keyframes shine-gradient {
+  0% { transform: translateX(-100%) rotate(15deg); }
+  100% { transform: translateX(100%) rotate(15deg); }
+}
+
+.animate-shine-gradient {
+  animation: shine-gradient 1.5s infinite;
 }
