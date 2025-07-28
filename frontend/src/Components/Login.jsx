@@ -17,7 +17,7 @@ export default function NewsLoginPage() {
   async function handleGoogleLogin() {
     try {
       console.log("Login started");
-      window.location.href = 'http://localhost:5000/api/auth/google';
+      window.location.href = 'https://news-hub-602j.onrender.com/api/auth/google';
     } catch (err) {
       console.log(err);
     }

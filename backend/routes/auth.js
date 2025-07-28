@@ -34,7 +34,7 @@ router.get('/google', passport.authenticate("google", { scope: ["profile", "emai
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:5000/api/auth/google/callback"
+    callbackURL: "https://news-hub-602j.onrender.com/api/auth/google/callback"
   },
   async function(accessToken, refreshToken, profile, done) {
     try {
@@ -70,7 +70,7 @@ passport.use(new GoogleStrategy({
 
   router.get('/google/callback',passport.authenticate("google",{ failureRedirect: '/login' }),(req,res)=>{
       console.log("qwefr");
-  res.redirect('http://localhost:5173/');
+  res.redirect(process.env.FRONTEND_URL);
 });
 
 
