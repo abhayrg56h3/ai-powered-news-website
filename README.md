@@ -1,1 +1,1 @@
-# ai-powered-news-website
+news-hub
