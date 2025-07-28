@@ -1,9 +1,62 @@
 import { Router } from "express";
-import  getAllArticles  from "../controllers/articleController.js";
+import  {getAllArticles ,getBreakingArticles} from "../controllers/articleController.js";
+import { SearchHandler } from "../controllers/NewsAPI.js";
+import  {saveFavoriteArticles} from "../controllers/articleController.js";
+import { LikeArticle } from "../controllers/articleController.js";
+import { postComment } from "../controllers/articleController.js";
+import { fetchByTopic } from "../controllers/articleController.js";
+import { fetchTopicsList } from "../controllers/articleController.js";
+import { fetchSourcesList } from "../controllers/articleController.js";
+import { fetchBySource } from "../controllers/articleController.js";
+import { fetchByRegion } from "../controllers/articleController.js";
+import { fetchRegionsList } from "../controllers/articleController.js";
+import { getById } from "../controllers/articleController.js";
+import { addView } from "../controllers/articleController.js";
+import { getRecommendedArticles } from "../controllers/articleController.js";
+import { getTodaysTopArticles } from "../controllers/articleController.js";
+import { getRecommendedArticlesForUser } from "../controllers/articleController.js";
+import { fetchHotTopics } from "../controllers/articleController.js";
+import { getWeeklyArticles } from "../controllers/articleController.js";
+import { getBreakingDetail } from "../controllers/articleController.js";
+import { saveArticle } from "../controllers/articleController.js";
+import { fetchByURL } from "../controllers/articleController.js";
+import { getMetaDataNameFromId } from "../controllers/articleController.js";
+import { getRecentArticles } from "../controllers/articleController.js";
+import { fetchTrendingCategories } from "../controllers/articleController.js";
+import {getTodaysTopArticlesSlider} from "../controllers/articleController.js";
+import { getEmbedding } from "../controllers/articleController.js";
 const router = Router();
 
 
 
-router.get("/articles", getAllArticles);
 
-export {router as articlesRouter  };
+router.get("/breakingarticles",getBreakingArticles);
+router.get("/articles", getAllArticles);
+router.get("/searchAPI",SearchHandler);
+router.get('/savefavourite',saveFavoriteArticles);
+router.get('/likearticle',LikeArticle);
+// router.get('/dislikearticle',DislikeArticle);
+router.post('/postcomment',postComment);
+router.post('/fetchbytopic',fetchByTopic);
+router.post('/fetchbysource',fetchBySource);
+router.post('/fetchbyregion',fetchByRegion); 
+router.get('/fetchTopicsList',fetchTopicsList);
+router.get('/fetchSourcesList',fetchSourcesList);
+router.get('/fetchRegionsList',fetchRegionsList);
+router.get('/fetchbyid/:id',getById);
+router.post("/addview", addView);
+router.post('/recommendedarticles',getRecommendedArticles);
+router.get('/todaysTopArticles',getTodaysTopArticles);
+router.get('/recommendedarticlesforuser/:userId',getRecommendedArticlesForUser);
+router.get('/fetchhottopics',fetchHotTopics);
+router.get('/getweeklyarticles',getWeeklyArticles);
+router.get('/breakingdetail/:id',getBreakingDetail);
+router.post('/savearticle',saveArticle);
+router.post('/fetchbyurl',fetchByURL);
+router.get('/getmetadatanamefromid/:id',getMetaDataNameFromId);
+router.get('/recentarticles',getRecentArticles);
+router.get('/fetchtrendingcategories',fetchTrendingCategories);
+router.get('/todaysTopArticlesSlider',getTodaysTopArticlesSlider);
+router.post('/getembedding',getEmbedding);
+
+export {router as articlesRouter  };  
