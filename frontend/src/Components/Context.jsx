@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createContext } from 'react';
 import axios from "axios";
-import { set } from 'mongoose';
 export const myContext = createContext();
 export default function Context({ children }) {
   const [lightMode, setLightMode] = useState(true);
