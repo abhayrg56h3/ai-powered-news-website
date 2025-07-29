@@ -36,7 +36,7 @@ const pool = workerpool.pool(
   }
 );
 const app = express();
-
+app.set('trust proxy', 1); 
 app.use(cors({
   origin: "https://getnewshub.netlify.app",  // ✅ hardcoded exact origin
   credentials: true,                         // ✅ required to send cookies
