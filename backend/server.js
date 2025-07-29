@@ -37,11 +37,10 @@ const pool = workerpool.pool(
 );
 const app = express();
 
-
 app.use(cors({
-  origin:process.env.FRONTEND_URL,
-  methods:"GET,POST,PUT,DELETE",
-  credentials:true
+  origin: "https://getnewshub.netlify.app",  // ✅ hardcoded exact origin
+  credentials: true,                         // ✅ required to send cookies
+  methods: ["GET", "POST", "PUT", "DELETE"]
 }));
 
  
