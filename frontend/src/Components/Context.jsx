@@ -22,7 +22,7 @@ export default function Context({ children }) {
   useEffect(() => {
     async function fetchCurrUser() {
       try {
-        const user = await axios.get('/api/user/curruser');
+        const user = await axios.get(`${import.meta.env.VITE_API_URL}/api/user/curruser`);
         console.log(user.data);
         setCurrUser(user.data);
       }

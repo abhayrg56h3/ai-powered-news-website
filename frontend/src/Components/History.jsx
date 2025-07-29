@@ -203,7 +203,7 @@ export default function History() {
     useEffect(() => {
       async function fetchTopics() {
         try {
-          const response = await axios.get('/api/article/fetchTopicsList');
+          const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchTopicsList`);
           const arr=response.data.sort((a, b) => b.articleCount - a.articleCount).filter(item=>topicMap[item.name]);
           
           if (response.status === 200) {
@@ -278,7 +278,7 @@ export default function History() {
         useEffect(() => {
           async function fetchRecentArticles() {
             try {
-              const response = await axios.get('/api/article/recentarticles');
+              const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/recentarticles`);
               setRecentArticles(response.data);
 
             } catch (error) {
@@ -300,7 +300,7 @@ export default function History() {
         const results = await Promise.allSettled(
           paginatedArticles.map(async (article) => {
             try {
-              const res = await axios.get(`/api/article/fetchbyid/${article.articleId}`);
+              const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchbyid/${article.articleId}`);
               return res.data;
             } catch (err) {
               console.warn("❌ Error fetching article with ID:", article.articleId);
@@ -333,7 +333,7 @@ export default function History() {
 
     try {
 
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id }
       });
 

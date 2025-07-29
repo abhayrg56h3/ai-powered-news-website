@@ -80,7 +80,7 @@ export default function AnalyticsPage() {
         await Promise.all(
           recentArticles.map(async (article) => {
             try {
-              const res = await axios.get(`/api/article/getmetadatanamefromid/${article.articleId}`);
+              const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/getmetadatanamefromid/${article.articleId}`);
               const { topic, source, region } = res.data;
               topicFreqMap[topic] = (topicFreqMap[topic] || 0) + 1;
               sourceFreqMap[source] = (sourceFreqMap[source] || 0) + 1;

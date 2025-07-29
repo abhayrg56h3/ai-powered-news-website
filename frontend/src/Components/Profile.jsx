@@ -95,8 +95,8 @@ export default function ProfilePage() {
     formData.append("image", file);
 
     try{
-      const res = await axios.post("/api/user/upload", formData);
-      
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/upload`, formData);
+
       showSuccess("Profile picture updated successfully!");
       setPreviewURL(res.data.imageUrl); // Update preview with uploaded URL
     } catch (err) {
@@ -117,7 +117,7 @@ export default function ProfilePage() {
       return;
     }
     try {
-      const res = await axios.post('/api/user/name', { name });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/name`, { name });
       console.log(res.data);
       currUser.name = name; // Update local state
       showSuccess("Profile updated successfully!");
@@ -135,9 +135,9 @@ export default function ProfilePage() {
       case "delete":
         try {
            console.log("Deleting account...");
-           await axios.delete('/api/user/delete');
-            await axios.get('/api/auth/logout');
-           
+           await axios.delete(`${import.meta.env.VITE_API_URL}/api/user/delete`);
+            await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
+
           showSuccess("Account deleted successfully.");
           window.location.reload(); // Reload to clear user state
         } catch (err) {
@@ -148,7 +148,7 @@ export default function ProfilePage() {
         break;
       case "logout":
         try{
-          await axios.get('/api/auth/logout');
+          await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
           showSuccess("Logged out successfully.");
           window.location.reload(); // Reload to clear user state
         }
@@ -167,19 +167,17 @@ export default function ProfilePage() {
           showError("Password must be at least 6 characters.");
           return;
         }
-          try{
-          const res = await axios.post('/api/user/password', {
+        try{
+          const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/password`, {
             oldPassword: passwordForm.oldPassword,
             newPassword: passwordForm.newPassword,
             confirmPassword: passwordForm.confirmPassword,
           });
           showSuccess("Password changed successfully!");
-         
         } catch (err) {
           console.error(err);
           showError("Failed to change password.");
         }
-        
         setPasswordForm({
           oldPassword: "",
           newPassword: "",

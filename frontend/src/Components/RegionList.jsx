@@ -51,7 +51,7 @@ export default function RegionList() {
                  useEffect(()=>{
                    async function fetchRegionList(){
                       try{
-                         const response=await axios.get('/api/article/fetchRegionsList');
+                         const response=await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchRegionsList`);
                      
                      setRegionList(response.data);
                    

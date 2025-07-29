@@ -292,14 +292,14 @@ export default function SearchPage() {
       }
 
       try {
-      const embedding =await axios.post('/api/article/getembedding', { text: query });
+      const embedding =await axios.post(`${import.meta.env.VITE_API_URL}/api/article/getembedding`, { text: query });
      
-      const res=await axios.post('/api/article/recommendedarticles', { embedding: embedding.data.embedding });
+      const res=await axios.post(`${import.meta.env.VITE_API_URL}/api/article/recommendedarticles`, { embedding: embedding.data.embedding });
          console.log(res.data);
 
         // Use allSettled to handle both fulfilled and rejected promises
         const dbResponses = await Promise.allSettled(
-          res.data.map((hit) => axios.get(`/api/article/fetchbyid/${hit.id}`))
+          res.data.map((hit) => axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchbyid/${hit.id}`))
         );
 
         const dbArticles = dbResponses
@@ -310,7 +310,7 @@ export default function SearchPage() {
         let articles = [...dbArticles];
 
     
-          const fallback = await axios.get(`/api/article/searchAPI?userQuery=${query}`);
+          const fallback = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/searchAPI?userQuery=${query}`);
           articles = [...articles, ...fallback.data.articles];
           console.log('🔁 Fallback articles:', fallback.data.articles);
         
@@ -397,7 +397,7 @@ export default function SearchPage() {
   useEffect(() => {
     async function fetchRecentArticles() {
       try {
-        const response = await axios.get('/api/article/recentarticles');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/recentarticles`);
         setRecentArticles(response.data);
 
       } catch (error) {
@@ -411,7 +411,7 @@ export default function SearchPage() {
   useEffect(() => {
     async function fetchTopics() {
       try {
-        const response = await axios.get('/api/article/fetchtrendingcategories');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchtrendingcategories`);
         if (response.status === 200) {
           setTrendingCategories(response.data);
         }

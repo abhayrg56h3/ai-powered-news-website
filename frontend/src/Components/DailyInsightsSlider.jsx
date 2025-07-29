@@ -326,7 +326,7 @@ const DailyInsightsCard = ({
 
     try {
 
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id }
       });
 
@@ -460,7 +460,7 @@ export default function DailyInsightsSlider() {
     }
     async function fetchArticles() {
       try {
-        const response = await axios.get('/api/article/todaysTopArticlesSlider', {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/todaysTopArticlesSlider`, {
           params: {
             userId: currUser?._id
           }
@@ -497,7 +497,7 @@ export default function DailyInsightsSlider() {
 
     try {
 
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id }
       });
 

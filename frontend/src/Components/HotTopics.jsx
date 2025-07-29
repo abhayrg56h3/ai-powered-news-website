@@ -306,7 +306,7 @@ const HotTopics = () => {
        
     async function fetchArticles() {
       try {
-        const response = await axios.get('/api/article/fetchhottopics');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchhottopics`);
         setArticles(response.data);
         console.log(response.data);
       } catch (error) {
@@ -376,7 +376,7 @@ const HotTopics = () => {
 
   async function handleAddBookmark(article) {
     try {
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id }
       });
 

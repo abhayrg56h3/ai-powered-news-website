@@ -38,7 +38,7 @@ function App() {
        if(!currUser) return;
             async function populateSavedList(){
                      const response=await Promise.all(currUser.favorites.map(async function(id){
-                          const res=await axios.get(`/api/article/fetchbyid/${id}`);
+                          const res=await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchbyid/${id}`);
                           return res.data;
                      }));
                       setSavedList(response);

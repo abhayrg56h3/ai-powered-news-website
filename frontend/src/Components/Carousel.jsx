@@ -17,7 +17,7 @@ const Carousel = () => {
   useEffect(() => {
     async function fetchBreaking() {
       try {
-        const response = await axios.get('/api/article/breakingarticles');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/breakingarticles`);
         console.log('Breaking articles fetched:', response.data);
         setBreaking(response.data);
       } catch (err) {
@@ -65,7 +65,7 @@ const Carousel = () => {
     });
   const handleAddBookmark = async (article) => {
     try {
-      await axios.get('/api/article/savefavourite', {
+      await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id },
       });
       if (savedList.some((a) => a._id === article._id)) {

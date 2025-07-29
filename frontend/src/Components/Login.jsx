@@ -17,7 +17,7 @@ export default function NewsLoginPage() {
   async function handleGoogleLogin() {
     try {
       console.log("Login started");
-      window.location.href = 'https://news-hub-602j.onrender.com/api/auth/google';
+      window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`;
     } catch (err) {
       console.log(err);
     }
@@ -34,7 +34,7 @@ export default function NewsLoginPage() {
     
     if (register) {
       try {
-        const response = await axios.post('/api/auth/signup', {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
           email,
           password,
           name: fullName
@@ -52,7 +52,7 @@ export default function NewsLoginPage() {
       }
     } else {
       try {
-        const response = await axios.post('/api/auth/login', {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
           email,
           password,
           rememberMe

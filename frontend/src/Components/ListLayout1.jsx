@@ -296,7 +296,7 @@ export default function ListLayout1({ type }) {
     const fetchData = async () => {
       try {
         if (topic) {
-          const res = await axios.post(`/api/article/fetchbytopic`, {
+          const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/article/fetchbytopic`, {
             topic,
             page: currentPage,
           });
@@ -304,14 +304,14 @@ export default function ListLayout1({ type }) {
           setTotalPages(res.data.totalPages);
           console.log(res.data.articles);
         } else if (source) {
-          const res = await axios.post(`/api/article/fetchbysource`, {
+          const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/article/fetchbysource`, {
             source,
             page: currentPage,
           });
           setArticles(res.data.articles);
           setTotalPages(res.data.totalPages);
         } else if (region) {
-          const res = await axios.post(`/api/article/fetchbyregion`, {
+          const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/article/fetchbyregion`, {
             region,
             page: currentPage,
           });

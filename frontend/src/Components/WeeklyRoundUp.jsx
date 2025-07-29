@@ -53,11 +53,9 @@ const ArticleCard = ({ article, index, lightMode, currUser }) => {
   async function handleAddBookmark(article) {
 
     try {
-
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id }
       });
-
       if (savedList.some(item => item.url === article.url)) {
         setSavedList(savedList.filter(item => item.url !== article.url));
       }
@@ -261,13 +259,13 @@ const WeeklyRoundup = () => {
     async function fetchArticles() {
       try {
 
-        const response = await axios.get("/api/article/getweeklyarticles", {
-          params: {
-            userId: currUser?._id,
-            page,
-            limit: 15
-          }
-        });
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/getweeklyarticles`, {
+        params: {
+          userId: currUser?._id,
+          page,
+          limit: 15
+        }
+      });
 
         setTotalPages(response.data.pagination.totalPages);
         console.log(response.data);

@@ -10,7 +10,7 @@ export default function SourceList() {
                  useEffect(()=>{
                    async function fetchSourcesList(){
                       try{
-                         const response=await axios.get('/api/article/fetchSourcesList');
+                         const response=await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchSourcesList`);
                          setSourcesList(response.data);
                          console.log("response",response.data);
                       }

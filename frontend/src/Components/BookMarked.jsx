@@ -347,7 +347,7 @@ export default function BookMarked() {
   useEffect(() => {
     async function fetchTopics() {
       try {
-        const response = await axios.get('/api/article/fetchtrendingcategories');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchtrendingcategories`);
         if (response.status === 200) {
           setTrendingCategories(response.data);
         }
@@ -443,7 +443,7 @@ export default function BookMarked() {
 
     try {
 
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: articleId, userId: currUser._id }
       });
 

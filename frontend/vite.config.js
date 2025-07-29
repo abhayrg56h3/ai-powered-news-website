@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://news-hub-602j.onrender.com', // your Express backend
+        target: 'http://localhost:5000', // your Express backend
         changeOrigin: true,
         secure: false,
       },

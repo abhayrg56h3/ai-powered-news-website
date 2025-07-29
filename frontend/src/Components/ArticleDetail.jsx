@@ -351,7 +351,7 @@ export default function HeroSection() {
 
     console.log("Sending data ➡️", data);
 
-    const response = await axios.post('/api/comment/savecomment', data);
+    const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/comment/savecomment`, data);
     console.log("Response received ✅", response.data);
 
     // Add the returned _id to the data before setting state
@@ -370,7 +370,7 @@ export default function HeroSection() {
 
    const handleAddBookmark = async (article) => {
       try {
-        await axios.get('/api/article/savefavourite', {
+        await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
           params: { id: article._id, userId: currUser._id },
         });
         if (savedList.some((a) => a._id === article._id)) {
@@ -388,7 +388,7 @@ export default function HeroSection() {
 
   async function handleDelete(commentId) {
     try {
-      await axios.delete(`/api/comment/deletecomment/${commentId}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/comment/deletecomment/${commentId}`);
       setComments((prev) => prev.filter((c) => c._id !== commentId));
     } catch (err) {
       console.log(err);
@@ -398,7 +398,7 @@ export default function HeroSection() {
   async function handleLike() {
 
     try {
-      await axios.get('/api/article/likearticle', {
+      await axios.get(`${import.meta.env.VITE_API_URL}/api/article/likearticle`, {
         params: {
           id: article._id,
           userId: currUser._id,
@@ -438,7 +438,7 @@ export default function HeroSection() {
     async function fetchComments() {
       try {
         const response = await Promise.all(article.comments?.map(async function (id) {
-          const res = await axios.get(`/api/comment/getfullcomment/${id}`);
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/comment/getfullcomment/${id}`);
           return res.data;
         }));
         console.log("response", response);
@@ -477,7 +477,7 @@ export default function HeroSection() {
   };
   useEffect(() => {
     axios
-      .get(`/api/article/fetchbyid/${id}`)
+      .get(`${import.meta.env.VITE_API_URL}/api/article/fetchbyid/${id}`)
       .then((res) => {
         setArticle(res.data);
       })
@@ -512,7 +512,7 @@ export default function HeroSection() {
     const timeSpentSeconds = Math.floor(activeTimeRef.current / 1000);
 
     try {
-      await axios.post("/api/article/addview", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/article/addview`, {
         articleId: article?._id,
         timeSpent: timeSpentSeconds,
         userId: currUser?._id
@@ -564,7 +564,7 @@ export default function HeroSection() {
       return;
     }
     async function fetchRelatedArticles() {
-      const response = await axios.post('/api/article/recommendedarticles', {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/article/recommendedarticles`, {
         embedding: article.embedding,
       });
       // console.log("Related Articles:", response.data);

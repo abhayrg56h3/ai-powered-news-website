@@ -292,7 +292,7 @@ export default function DailyInsightsPage() {
   useEffect(() => {
     async function fetchTopics() {
       try {
-        const response = await axios.get('/api/article/fetchTopicsList');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchTopicsList`);
         const arr = response.data.slice(0, 10).sort((a, b) => b.articleCount - a.articleCount);
         if (response.status === 200) {
           setTrendingCategories(arr);
@@ -323,7 +323,7 @@ export default function DailyInsightsPage() {
    
     async function fetchArticles() {
       try {
-        const response = await axios.get('/api/article/todaysTopArticles', {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/todaysTopArticles`, {
           params: {
             userId: currUser?._id,
             limit:8,
@@ -477,7 +477,7 @@ export default function DailyInsightsPage() {
 
     try {
 
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id }
       });
 

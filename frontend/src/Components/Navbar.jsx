@@ -147,16 +147,16 @@ export default function Navbar({
   useEffect(() => {
     async function fetchList() {
       try {
-        const politics = await axios.post("/api/article/fetchbytopic", {
+        const politics = await axios.post(`${import.meta.env.VITE_API_URL}/api/article/fetchbytopic`, {
           topic: "Politics",
           page:1
         });
         setPoliticsList(politics.data.articles);
-        const tech = await axios.post("/api/article/fetchbytopic", {
+        const tech = await axios.post(`${import.meta.env.VITE_API_URL}/api/article/fetchbytopic`, {
           topic: "Technology",
         });
         setTechnologyList(tech.data.articles);
-        const business = await axios.post("/api/article/fetchbytopic", {
+        const business = await axios.post(`${import.meta.env.VITE_API_URL}/api/article/fetchbytopic`, {
           topic: "Business",
         });
         setBusinessList(business.data.articles);

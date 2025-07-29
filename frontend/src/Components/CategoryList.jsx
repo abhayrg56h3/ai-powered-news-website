@@ -31,7 +31,7 @@ export default function CategoryList() {
              useEffect(()=>{
                async function fetchTopicsList(){
                   try{
-                     const response=await axios.get('/api/article/fetchTopicsList');
+                     const response=await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchTopicsList`);
                      let arr=[];
                      response.data.map(function (item){
                 

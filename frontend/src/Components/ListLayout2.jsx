@@ -311,7 +311,7 @@ const ListLayout2 = ({ type, list }) => {
   useEffect(() => {
     async function fetchRecentArticles() {
       try {
-        const response = await axios.get('/api/article/recentarticles');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/recentarticles`);
         setRecentArticles(response.data);
 
       } catch (error) {

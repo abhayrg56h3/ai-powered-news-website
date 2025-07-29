@@ -289,7 +289,7 @@ function Home() {
   useEffect(() => {
     async function fetchTopics() {
       try {
-        const response = await axios.get('/api/article/fetchTopicsList');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchTopicsList`);
         if (response.status === 200) {
           setTopics(response.data);
         }

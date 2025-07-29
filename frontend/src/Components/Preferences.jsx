@@ -254,7 +254,7 @@ export default function PreferencesPage() {
   useEffect(() => {
     async function fetchRegionsList() {
       try {
-        const res = await axios.get('/api/article/fetchRegionsList');
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchRegionsList`);
         let arr = [];
         res.data.map(function (item) {
           arr.push(item.name);
@@ -270,7 +270,7 @@ export default function PreferencesPage() {
   useEffect(() => {
     async function fetchTopicsList() {
       try {
-        const res = await axios.get('/api/article/fetchTopicsList');
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchTopicsList`);
         let arr = [];
         res.data.map(function (item) {
           arr.push(item.name);
@@ -354,7 +354,7 @@ export default function PreferencesPage() {
       return;
     }
     try {
-      await axios.post('/api/user/updatepreferences', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/user/updatepreferences`, {
         sources: selectedSources,
         regions: selectedRegions,
         topics: selectedTopics
