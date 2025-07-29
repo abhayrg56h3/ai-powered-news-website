@@ -23,8 +23,8 @@ out/
 coverage/
 
 # Environment variables
-.env*
-!.env.example
+# .env*
+# !.env.example
 
 # OS generated files
 .DS_Store
