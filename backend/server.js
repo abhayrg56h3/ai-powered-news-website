@@ -37,6 +37,13 @@ const pool = workerpool.pool(
 );
 const app = express();
 
+
+app.use(cors({
+  origin:process.env.FRONTEND_URL,
+  methods:"GET,POST,PUT,DELETE",
+  credentials:true
+}));
+
  
 
 // Middleware
@@ -60,19 +67,19 @@ app.use(
       autoRemove: "interval", // Clean expired sessions
       autoRemoveInterval: 10 // Runs every 10 minutes
     }),
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-    },
+   cookie: {
+  httpOnly: true,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure: process.env.NODE_ENV === "production", // true in prod, false in dev
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+}
+
+
   })
 );
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(cors({
-  origin:"http://localhost:5173",
-  methods:"GET,POST,PUT,DELETE",
-  credentials:true
-}));
+
 
 
 

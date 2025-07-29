@@ -373,7 +373,7 @@ export default function ListLayout1({ type }) {
   useEffect(() => {
     async function fetchRecentArticles() {
       try {
-        const response = await axios.get('/api/article/recentarticles');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/recentarticles`);
         setRecentArticles(response.data);
 
       } catch (error) {
@@ -388,7 +388,7 @@ export default function ListLayout1({ type }) {
   useEffect(() => {
     async function fetchTopics() {
       try {
-        const response = await axios.get('/api/article/fetchtrendingcategories');
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/fetchtrendingcategories`);
         if (response.status === 200) {
           setTrendingCategories(response.data);
         }
@@ -463,7 +463,7 @@ export default function ListLayout1({ type }) {
 
     try {
 
-      const response = await axios.get('/api/article/savefavourite', {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/article/savefavourite`, {
         params: { id: article._id, userId: currUser._id }
       });
 
