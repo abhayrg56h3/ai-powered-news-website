@@ -207,7 +207,7 @@ const summarizeWorker = new Worker(
         const onlyEnglish = str => /^[A-Za-z\s]+$/.test(str);
 
 
-        if (breakingScore == 100) {
+        if (breakingScore >=90) {
           usersEmail.map(function (email) {
 
             sendBreakingEmail(finalArticle, email);

@@ -34,7 +34,7 @@ router.get('/google', passport.authenticate("google", { scope: ["profile", "emai
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "https://news-hub-602j.onrender.com/api/auth/google/callback"
+    callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`
   },
   async function(accessToken, refreshToken, profile, done) {
     try {
@@ -251,7 +251,7 @@ router.post('/login', function handleLoginRequest(req, res, next) {
 
 passport.serializeUser((user,done)=>{
    
-  console.log("Serialise User is called");
+  console.log("Serialise User is called",user);
     done(null,user._id);
 });
 
@@ -260,9 +260,9 @@ passport.serializeUser((user,done)=>{
 // DESERIALISE USER
 
 passport.deserializeUser(async(id,done)=>{
-  console.log(id);
+       console.log("Deserialise User is called",id);
    const user=  await User.findById(id);
-
+     console.log(user);
    done(null,user);
   
 });

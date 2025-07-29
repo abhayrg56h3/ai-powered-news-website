@@ -88,7 +88,8 @@ export async function updatePreferences(req,res){
             const sources=req.body.sources;
 
             // Get the current user from the request
-            const user=req.user;
+            const user=req.body.user;
+            console.log("user",user);
 
             // Update the preferences of the user
             user.preferences.regions=regions;
@@ -96,7 +97,10 @@ export async function updatePreferences(req,res){
             user.preferences.sources=sources;
 
             // Save the updated user
-            await user.save();
+            const updatedUser= await User.findByIdAndUpdate(user._id, {
+              preferences: user.preferences
+            });
+          
 
             // Send a success response
             res.status(200).json("Updated successfully");
@@ -106,6 +110,7 @@ export async function updatePreferences(req,res){
         catch(err){
            // Send an error response if something goes wrong
            res.status(500).json(err);
+           console.log("Error updating preferences:", err);
         }
 }
 

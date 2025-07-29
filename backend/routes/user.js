@@ -45,6 +45,8 @@ router.delete('/delete',deleteUser);
 
 
 router.get('/curruser',(req,res)=>{
+
+   console.log("currUser in user.js", req.user);
          if(!req.user){
         res.status(200).json("");
        }
