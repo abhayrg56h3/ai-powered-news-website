@@ -95,14 +95,14 @@ export default function ProfilePage() {
     formData.append("image", file);
 
     try{
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/upload`, formData);
-
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/upload`, formData,{
+        withCredentials: true, // Ensure cookies are sent
+      });
       showSuccess("Profile picture updated successfully!");
       setPreviewURL(res.data.imageUrl); // Update preview with uploaded URL
     } catch (err) {
       console.error("❌ Upload error:", err);
       showError("Upload failed");
-
     }
   };
 
@@ -117,7 +117,9 @@ export default function ProfilePage() {
       return;
     }
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/name`, { name });
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/name`, { name },{
+        withCredentials: true, // Ensure cookies are sent
+      });
       console.log(res.data);
       currUser.name = name; // Update local state
       showSuccess("Profile updated successfully!");
@@ -135,11 +137,14 @@ export default function ProfilePage() {
       case "delete":
         try {
            console.log("Deleting account...");
-           await axios.delete(`${import.meta.env.VITE_API_URL}/api/user/delete`);
-            await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
-
-          showSuccess("Account deleted successfully.");
-          window.location.reload(); // Reload to clear user state
+           await axios.delete(`${import.meta.env.VITE_API_URL}/api/user/delete`,{
+            withCredentials: true, // Ensure cookies are sent
+           });
+           await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`,{
+            withCredentials:true,
+           });
+           showSuccess("Account deleted successfully.");
+           window.location.reload(); // Reload to clear user state
         } catch (err) {
           console.error(err);
           showError("Failed to delete account.");
@@ -148,7 +153,9 @@ export default function ProfilePage() {
         break;
       case "logout":
         try{
-          await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`);
+          await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`,{
+            withCredentials: true, // Ensure cookies are sent
+           });
           showSuccess("Logged out successfully.");
           window.location.reload(); // Reload to clear user state
         }
@@ -163,21 +170,21 @@ export default function ProfilePage() {
           showError("Passwords do not match!");
           return;
         }
-        if (passwordForm.newPassword.length < 6) {
-          showError("Password must be at least 6 characters.");
-          return;
-        }
-        try{
+       
+          try{
           const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/user/password`, {
             oldPassword: passwordForm.oldPassword,
             newPassword: passwordForm.newPassword,
             confirmPassword: passwordForm.confirmPassword,
-          });
+          },{
+        withCredentials: true, // Ensure cookies are sent
+      });
           showSuccess("Password changed successfully!");
         } catch (err) {
           console.error(err);
           showError("Failed to change password.");
         }
+        
         setPasswordForm({
           oldPassword: "",
           newPassword: "",

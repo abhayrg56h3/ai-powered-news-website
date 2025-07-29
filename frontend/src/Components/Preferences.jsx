@@ -357,7 +357,8 @@ export default function PreferencesPage() {
       await axios.post(`${import.meta.env.VITE_API_URL}/api/user/updatepreferences`, {
         sources: selectedSources,
         regions: selectedRegions,
-        topics: selectedTopics
+        topics: selectedTopics,
+        user: currUser
       });
       const updatedUser = {
         ...currUser,

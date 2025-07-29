@@ -8,7 +8,7 @@ export default function NewsLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [register, setRegister] = useState(false);
   const { lightMode, setLightMode } = useContext(myContext);
   const navigate = useNavigate();
@@ -17,6 +17,7 @@ export default function NewsLoginPage() {
   async function handleGoogleLogin() {
     try {
       console.log("Login started");
+      
       window.location.href = `${import.meta.env.VITE_API_URL}/api/auth/google`;
     } catch (err) {
       console.log(err);
@@ -41,7 +42,7 @@ export default function NewsLoginPage() {
         });
         console.log(response.data);
         setRegister(false);
-        window.location.href = '/preferences';
+        console.log(import.meta.env.VITE_API_URL);
       } catch (err) {
         if (err.response && err.response.status === 400) {
           alert("⚠️ User already exists!");
@@ -56,7 +57,7 @@ export default function NewsLoginPage() {
           email,
           password,
           rememberMe
-        });
+        },{withCredentials:true});
         console.log("✅ Login Successful!", response.data);
         window.location.href = '/';
       } catch (err) {

@@ -81,12 +81,7 @@ export default function Navbar({
   // Page items for mobile menu (from Code 2)
   const pageItems = [
     { label: "Home", icon: <Home size={16} />, bg: "bg-gradient-to-r from-orange-500 to-orange-600", navigate: '/' },
-    {
-      label: "Login/Registration",
-      icon: <LogIn size={16} />,
-      bg: "bg-gradient-to-r from-red-500 to-red-600",
-      navigate: '/login'
-    },
+    
     {
       label: "My Bookmarks",
       icon: <Bookmark size={16} />,
