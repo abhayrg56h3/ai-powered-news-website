@@ -88,17 +88,28 @@ app.use("/api/topic_source_region_list", topic_source_region_list_router);
 app.use("/api/user",userRouter);
 app.use("/api/comment",commentRouter);
 
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log("✅ Connected to MongoDB");
 
-  mongoose.connection.on("error", (err) => {
-  console.log("❌ MongoDB connection error: ", err);
-});
+  // ✅ Safe to start scrapers now
+  scrapeBBCNews();
+  scrapeAlJazeeraNews();
+  ndtvNews();
+  cnbcNews();
+  guardianNews();
+  scrapeTechCrunchNews();
+  theHinduNews();
+  toiNews();
+
+  // Or schedule them if you prefer
+  // setInterval(scrapeAlJazeeraNews, 3 * 60 * 60 * 1000);
+})
+.catch((err) => console.error("MongoDB connection error:", err));
+
 
 // scrapeBBCNews();
 
