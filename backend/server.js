@@ -21,7 +21,7 @@ import { articleDeletionCron } from "./cron/userPreferenceCron.js";
 // import ndtvNews from "./scrapers/ndtv.js";
 // import cnbcNews from "./scrapers/cnbc.js";
 // import guardianNews from "./scrapers/thegaurdian.js";
-// import scrapeTechCrunchNews from "./scrapers/techcrunch.js";
+import scrapeTechCrunchNews from "./scrapers/techcrunch.js";
 // import summarizeWorker from "./workers/summarize-workers.js";
 // import scrapeBBCNews from "./scrapers/bbcScraper.js";
 // import scrapeAlJazeeraNews from "./scrapers/aljazira.js";

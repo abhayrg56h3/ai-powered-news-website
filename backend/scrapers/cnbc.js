@@ -4,8 +4,10 @@ import * as cheerio from 'cheerio';
 import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
+import Redis from 'ioredis';
 
 // Base URL and User-Agent pool
+const redisClient = new Redis(process.env.REDIS_URL);
 const baseUrl = 'https://www.cnbc.com';
 const agents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
@@ -65,12 +67,23 @@ async function cnbcNews() {
       return true;
     });
     console.log(`🛎️ Found ${articles.length} unique previews`);
+     let allUrls = links.map(link => link.url);
+        const existing = await Article.find({ url: { $in: allUrls } }).select('url');
+        const dbUrlsSet = new Set(existing.map(a => a.url));
+    
 
     // Process each article sequentially 🚶‍♀️
     for (const article of articles) {
       try {
         // Skip if already in DB
-        if (await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url)) continue;
+       if (dbUrlsSet.has(article.url)) continue;  
+         const isNew = await redisClient.sadd('scraped:cnbc:urls', article.url);
+      if (isNew === 0) continue;           // already seen before
+
+      // Set a TTL on the set key (once)
+      if ((await redisClient.ttl('scraped:cnbc:urls')) < 0) {
+        await redisClient.expire('scraped:cnbc:urls', 7 * 24 * 3600);
+      } 
 
         console.log(`📥 Fetching page: ${article.url}`);
         const res = await axios.get(article.url, {
@@ -123,6 +136,6 @@ async function cnbcNews() {
 
 // Schedule: run immediately and every hour
 cnbcNews();
-setInterval(cnbcNews, 60 * 60 * 1000);
+setInterval(cnbcNews, 3 * 60 * 60 * 1000);
 
 export default cnbcNews;

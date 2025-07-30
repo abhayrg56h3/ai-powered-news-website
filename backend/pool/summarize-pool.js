@@ -32,7 +32,7 @@ const API_KEYS = [
 // Track key usage and exhaustion state
 let keyIndex = 0;
 let lastExhaustionTime = 0;
-const EXHAUSTION_COOLDOWN =  3 * 60 * 1000; // 4 hour cooldown after all keys exhausted
+const EXHAUSTION_COOLDOWN =  4  * 60 * 1000; // 4 hour cooldown after all keys exhausted
 const MAX_RETRY_ATTEMPTS = 3; // Maximum retry attempts per request
 
 

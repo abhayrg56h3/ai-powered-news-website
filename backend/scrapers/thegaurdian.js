@@ -6,8 +6,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js';
 import Article from '../models/Article.js';
-
+import Redis from 'ioredis';
 // Setup __dirname
+
+const redisClient = new Redis(process.env.REDIS_URL);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -61,13 +63,20 @@ async function guardianNews() {
 
     console.log(`📰 Found ${allArticles.length} articles`);
 
+    let allUrls = allArticles.map(article => article.url);
+    const existing = await Article.find({ url: { $in: allUrls } }).select('url');
+    const dbUrlsSet = new Set(existing.map(a => a.url));
+
     // Sequentially process articles 🚶‍♂️
     for (const article of allArticles) {
       try {
-        const exists = await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url);
-        if (exists) {
-          console.log(`🔄 Already exists: ${article.url}`);
-          continue;
+        if (dbUrlsSet.has(article.url)) continue;
+        const isNew = await redisClient.sadd('scraped:theguardian:urls', article.url);
+        if (isNew === 0) continue;           // already seen before
+
+        // Set a TTL on the set key (once)
+        if ((await redisClient.ttl('scraped:theguardian:urls')) < 0) {
+          await redisClient.expire('scraped:theguardian:urls', 7 * 24 * 3600);
         }
 
         console.log(`📝 Fetching details: ${article.url}`);
@@ -124,6 +133,6 @@ async function guardianNews() {
 
 // Schedule: run now and every hour
 guardianNews();
-setInterval(guardianNews, 60 * 60 * 1000);
+setInterval(guardianNews, 3 * 60 * 60 * 1000);
 
 export default guardianNews;

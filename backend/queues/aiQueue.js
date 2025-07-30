@@ -12,3 +12,4 @@ export const connection = new Redis(process.env.REDIS_URL, {
 const summarizerQueue = new Queue("summarizerQueue", { connection });
 
 export default summarizerQueue;
+ 
