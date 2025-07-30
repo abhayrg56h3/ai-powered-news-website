@@ -4,11 +4,8 @@ import * as cheerio from 'cheerio';
 import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
-import Redis from 'ioredis';
-
 
 // Base URL and User-Agent pool
-const redisClient = new Redis(process.env.REDIS_URL);
 const baseUrl = 'https://www.ndtv.com';
 const agents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
@@ -61,21 +58,15 @@ async function ndtvNews() {
       }
     });
     console.log(`📰 Found ${links.length} candidate links.`);
-       let allUrls = links.map(link => link.url);
-              const existing = await Article.find({ url: { $in: allUrls } }).select('url');
-              const dbUrlsSet = new Set(existing.map(a => a.url));
+
     // Process each article sequentially 🚶‍♂️
     for (const article of links) {
-      try { 
+      try {
         // Skip if already in DB
-         if (dbUrlsSet.has(article.url)) continue;  
-         const isNew = await redisClient.sadd('scraped:ndtv:urls', article.url);
-      if (isNew === 0) continue;           // already seen before
-
-      // Set a TTL on the set key (once)
-      if ((await redisClient.ttl('scraped:ndtv:urls')) < 0) {
-        await redisClient.expire('scraped:ndtv:urls', 7 * 24 * 3600);
-      }
+        if (await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url)) {
+          console.log(`🔄 Already processed: ${article.url}`);
+          continue;
+        }
 
         console.log(`🔗 Fetching: ${article.url}`);
         const { data: artHtml } = await axios.get(article.url, {
@@ -133,6 +124,6 @@ async function ndtvNews() {
 
 // Run immediately and every hour
 ndtvNews();
-setInterval(ndtvNews, 3 * 60 * 60 * 1000);
+setInterval(ndtvNews, 60 * 60 * 1000);
 
 export default ndtvNews;

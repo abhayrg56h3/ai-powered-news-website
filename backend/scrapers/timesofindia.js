@@ -6,11 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js'; // Adjust path as needed
 import Article from '../models/Article.js';
-import Redis from 'ioredis';
 
-
-// Redis client for deduplication
-const redisClient = new Redis(process.env.REDIS_URL);
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,21 +63,14 @@ async function toiNews() {
     });
 
     console.log(`📰 Found ${allArticles.length} article previews`);
-       
-                let allUrls = allArticles.map(article => article.url);
-                 const existing = await Article.find({ url: { $in: allUrls } }).select('url');
-                 const dbUrlsSet = new Set(existing.map(a => a.url));
+
     // Process each article sequentially 🚶‍♂️
     for (const article of allArticles) {
       try {
         // Skip if already processed 🔄
-         if (dbUrlsSet.has(article.url)) continue;
-        const isNew = await redisClient.sadd('scraped:timesofindia:urls', article.url);
-        if (isNew === 0) continue;           // already seen before
-
-        // Set a TTL on the set key (once)
-        if ((await redisClient.ttl('scraped:timesofindia:urls')) < 0) {
-          await redisClient.expire('scraped:timesofindia:urls', 7 * 24 * 3600);
+        if (await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url)) {
+          console.log(`🔄 Already processed: ${article.url}`);
+          continue;
         }
 
         console.log(`📄 Fetching detail: ${article.title}`);

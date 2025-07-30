@@ -4,10 +4,7 @@ import * as cheerio from 'cheerio';
 import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
-import Redis from 'ioredis';
 
-
-const redisClient = new Redis(process.env.REDIS_URL);
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.bbc.com';
 const agents = [
@@ -53,22 +50,12 @@ async function scrapeBBCNews() {
       if (title) links.push({ title, url: href });
     });
     console.log(`📰 Found ${links.length} articles`);
-    let allUrls = links.map(link => link.url);
-    const existing = await Article.find({ url: { $in: allUrls } }).select('url');
-    const dbUrlsSet = new Set(existing.map(a => a.url));
 
     // Process each link sequentially 🚶‍♂️
     for (const { title, url } of links) {
       try {
         // Skip if already in DB
-         if (dbUrlsSet.has(url)) continue;  
-         const isNew = await redisClient.sadd('scraped:bbc:urls', url);
-      if (isNew === 0) continue;             // already seen before
-
-      // Set a TTL on the set key (once)
-      if ((await redisClient.ttl('scraped:bbc:urls')) < 0) {
-        await redisClient.expire('scraped:bbc:urls', 7 * 24 * 3600);
-      } 
+        if (await Article.exists({ url }) || await summarizerQueue.getJob(url)) continue;
 
         console.log(`📄 Fetching detail: ${title}`);
         const detailRes = await axios.get(url, {
@@ -138,6 +125,6 @@ async function scrapeBBCNews() {
 
 // Run immediately and then hourly
 scrapeBBCNews();
-setInterval(scrapeBBCNews, 3 * 60 * 60 * 1000);
+setInterval(scrapeBBCNews, 60 * 60 * 1000);
 
 export default scrapeBBCNews;

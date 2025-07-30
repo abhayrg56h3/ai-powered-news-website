@@ -18,15 +18,15 @@ import { authRouter } from "./routes/auth.js";
 import { userRouter } from "./routes/user.js";
 import {userPreferenceCron} from "./cron/userPreferenceCron.js";
 import { articleDeletionCron } from "./cron/userPreferenceCron.js";
-import ndtvNews from "./scrapers/ndtv.js";
-import cnbcNews from "./scrapers/cnbc.js";
-import guardianNews from "./scrapers/thegaurdian.js";
-import scrapeTechCrunchNews from "./scrapers/techcrunch.js";
-import summarizeWorker from "./workers/summarize-workers.js";
-import scrapeBBCNews from "./scrapers/bbcScraper.js";
-import scrapeAlJazeeraNews from "./scrapers/aljazira.js";
-import theHinduNews from "./scrapers/thehindu.js";
-import toiNews from "./scrapers/timesofindia.js";
+// import ndtvNews from "./scrapers/ndtv.js";
+// import cnbcNews from "./scrapers/cnbc.js";
+// import guardianNews from "./scrapers/thegaurdian.js";
+// import scrapeTechCrunchNews from "./scrapers/techcrunch.js";
+// import summarizeWorker from "./workers/summarize-workers.js";
+// import scrapeBBCNews from "./scrapers/bbcScraper.js";
+// import scrapeAlJazeeraNews from "./scrapers/aljazira.js";
+// import theHinduNews from "./scrapers/thehindu.js";
+// import toiNews from "./scrapers/timesofindia.js";
 import { topic_source_region_list_router } from "./routes/region-topic-source-route.js";
 dotenv.config();
 const pool = workerpool.pool(
@@ -88,28 +88,17 @@ app.use("/api/topic_source_region_list", topic_source_region_list_router);
 app.use("/api/user",userRouter);
 app.use("/api/comment",commentRouter);
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => {
-  console.log("✅ Connected to MongoDB");
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
-  // ✅ Safe to start scrapers now
-  scrapeBBCNews();
-  scrapeAlJazeeraNews();
-  ndtvNews();
-  cnbcNews();
-  guardianNews();
-  scrapeTechCrunchNews();
-  theHinduNews();
-  toiNews();
-
-  // Or schedule them if you prefer
-  // setInterval(scrapeAlJazeeraNews, 3 * 60 * 60 * 1000);
-})
-.catch((err) => console.error("MongoDB connection error:", err));
-
+  mongoose.connection.on("error", (err) => {
+  console.log("❌ MongoDB connection error: ", err);
+});
 
 // scrapeBBCNews();
 
