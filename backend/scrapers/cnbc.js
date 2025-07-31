@@ -28,7 +28,7 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function cnbcNews() {
   try {
-    console.log('🔍 Fetching CNBC homepage...');
+    // console.log('🔍 Fetching CNBC homepage...');
     const { data } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -66,7 +66,7 @@ async function cnbcNews() {
         // Skip if already in DB
       if( await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) continue;
 
-        console.log(`📥 Fetching page: ${article.url}`);
+        // console.log(`📥 Fetching page: ${article.url}`);
         const res = await axios.get(article.url, {
           httpsAgent,
           headers: {
@@ -100,18 +100,18 @@ async function cnbcNews() {
             'summarize',
             { newArticle: { ...article, source: 'CNBC' } },
           );
-          console.log (`✅ Queued: ${article.url}`);
+          // console.log (`✅ Queued: ${article.url}`);
         } else {
-          console.warn(`⚠️ Incomplete, skipped: ${article.url}`);
+          // console.warn(`⚠️ Incomplete, skipped: ${article.url}`);
         }
       } catch (err) {
-        console.error(`❌ Error processing ${article.url}:`, err.message);
+        // console.error(`❌ Error processing ${article.url}:`, err.message);
       }
     }
 
-    console.log('🎉 CNBC scraping completed');
+    // console.log('🎉 CNBC scraping completed');
   } catch (err) {
-    console.error('🚨 Fetch error:', err.message);
+    // console.error('🚨 Fetch error:', err.message);
   }
 }
 

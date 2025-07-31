@@ -192,24 +192,24 @@ async function fetchPreviewsFromRSS() {
 
 // ─── Main scraper ───────────────────────────────────────────────────────────────
 async function scrapeTechCrunch() {
-  console.log('🌐 Fetching previews from TechCrunch…');
+  // console.log('🌐 Fetching previews from TechCrunch…');
   let previews = [];
   try {
     previews = await fetchPreviewsFromHTML();
-    console.log(`📰 Got ${previews.length} previews from HTML`);
+    // console.log(`📰 Got ${previews.length} previews from HTML`);
   } catch (htmlError) {
-    console.warn('⚠️ Error fetching HTML previews:', htmlError.message);
+    // console.warn('⚠️ Error fetching HTML previews:', htmlError.message);
     try {
-      console.warn('⚠️ Falling back to RSS feed…');
+      // console.warn('⚠️ Falling back to RSS feed…');
       previews = await fetchPreviewsFromRSS();
-      console.log(`📰 Got ${previews.length} previews from RSS`);
+      // console.log(`📰 Got ${previews.length} previews from RSS`);
     } catch (rssError) {
-      console.error('❌ Failed to fetch from both HTML and RSS:', rssError.message);
+      // console.error('❌ Failed to fetch from both HTML and RSS:', rssError.message);
       return;
     }
   }
   if (previews.length === 0) {
-    console.warn('⚠️ No previews found from either source');
+    // console.warn('⚠️ No previews found from either source');
     return;
   }
   
@@ -217,7 +217,7 @@ async function scrapeTechCrunch() {
   for (const art of previews) {
     try {
       if (await Url.exists({ url: art.url }) || await Article.exists({ url: art.url })) continue;
-      console.log(`📥 Fetching detail: ${art.url}`);
+      // console.log(`📥 Fetching detail: ${art.url}`);
       const { data: html } = await axios.get(art.url, {
         httpsAgent,
         headers: { 'User-Agent': agents[Math.random() * agents.length | 0] },
@@ -244,8 +244,8 @@ async function scrapeTechCrunch() {
       art.content = paras.join('\n');
       // 🖼️ Extract featured image using our robust method
       art.image = extractFeaturedImage($);
-      console.log('🖼️ Image URL:', art.image);
-      console.log('📄 Content length:', art.content.length);
+      // console.log('🖼️ Image URL:', art.image);
+      // console.log('📄 Content length:', art.content.length);
       // ✅ Queue if valid
       if (art.content && art.content.length > 100 && art.image) {
         const newUrl = new Url({
@@ -255,16 +255,16 @@ async function scrapeTechCrunch() {
         await summarizerQueue.add('summarize', {
           newArticle: { ...art, source: 'TechCrunch' }
         });
-        console.log('🔔 Queued for summarization!');
+        // console.log('🔔 Queued for summarization!');
       } else {
-        console.warn(`⚠️ Skipped incomplete article: ${art.url}`);
-        if (!art.content || art.content.length < 100) console.warn('⚠️ Content too short');
-        if (!art.image) console.warn('⚠️ No image found');
+        // console.warn(`⚠️ Skipped incomplete article: ${art.url}`);
+        if (!art.content || art.content.length < 100) { /* console.warn('⚠️ Content too short'); */ }
+        if (!art.image) { /* console.warn('⚠️ No image found'); */ }
       }
     } catch (e) {
-      console.error(`❌ Error fetching detail for ${art.url}:`, e.message);
+      // console.error(`❌ Error fetching detail for ${art.url}:`, e.message);
     }
   }
-  console.log('🎉 Scrape finished!');
+  // console.log('🎉 Scrape finished!');
 }
 export default scrapeTechCrunch;

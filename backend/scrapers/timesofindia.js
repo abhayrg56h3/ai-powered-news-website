@@ -36,7 +36,7 @@ async function toiNews() {
   const allArticles = [];
 
   try {
-    console.log('📡 Fetching TOI homepage...');
+    // console.log('📡 Fetching TOI homepage...');
     const { data } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -62,18 +62,18 @@ async function toiNews() {
       });
     });
 
-    console.log(`📰 Found ${allArticles.length} article previews`);
+    // console.log(`📰 Found ${allArticles.length} article previews`);
 
     // Process each article sequentially 🚶‍♂️
     for (const article of allArticles) {
       try {
         // Skip if already processed 🔄
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
-          console.log(`🔄 Already exists: ${article.url}`);
+          // console.log(`🔄 Already exists: ${article.url}`);
           continue;
         }
 
-        console.log(`📄 Fetching detail: ${article.title}`);
+        // console.log(`📄 Fetching detail: ${article.title}`);
         const res = await axios.get(article.url, {
           httpsAgent,
           headers: { 'User-Agent': agents[Math.floor(Math.random() * agents.length)] },
@@ -108,18 +108,18 @@ async function toiNews() {
             'summarize',
             { newArticle },
           );
-          console.log(`📩 Queued article: ${article.title}`);
+          // console.log(`📩 Queued article: ${article.title}`);
         } else {
-          console.warn(`⚠️ Skipping incomplete: ${article.url}`);
+          // console.warn(`⚠️ Skipping incomplete: ${article.url}`);
         }
       } catch (err) {
-        console.error(`❌ Detail fetch error: ${article.url}`, err.message);
+        // console.error(`❌ Detail fetch error: ${article.url}`, err.message);
       }
     }
 
-    console.log('✅ TOI scraping completed successfully.');
+    // console.log('✅ TOI scraping completed successfully.');
   } catch (error) {
-    console.error('🌐 Network or parsing error:', error.message);
+    // console.error('🌐 Network or parsing error:', error.message);
   }
 }
 

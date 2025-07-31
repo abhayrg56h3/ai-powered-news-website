@@ -36,7 +36,7 @@ async function theHinduNews() {
   const allArticles = [];
 
   try {
-    console.log('🌐 Fetching The Hindu homepage...');
+    // console.log('🌐 Fetching The Hindu homepage...');
     const { data } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -58,7 +58,7 @@ async function theHinduNews() {
         allArticles.push({ title, url, image: null, content: '' });
       }
     });
-    console.log(`📰 Found ${allArticles.length} articles`);
+    // console.log(`📰 Found ${allArticles.length} articles`);
 
     // Process each article sequentially 🚶‍♂️
     for (const article of allArticles) {
@@ -66,11 +66,11 @@ async function theHinduNews() {
 
         // Skip if already in DB 🔄
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
-          console.log(`🔄 Already exists: ${article.url}`);
+          // console.log(`🔄 Already exists: ${article.url}`);
           continue;
         }
 
-        console.log(`🔗 Fetching detail: ${article.url}`);
+        // console.log(`🔗 Fetching detail: ${article.url}`);
         const { data: artHtml } = await axios.get(article.url, {
           httpsAgent,
           headers: {
@@ -106,18 +106,18 @@ async function theHinduNews() {
             'summarize',
             { newArticle }
           );
-          console.log(`📤 Enqueued: ${article.title}`);
+          // console.log(`📤 Enqueued: ${article.title}`);
         } else {
-          console.warn(`⚠️ Skipping incomplete article: ${article.url}`);
+          // console.warn(`⚠️ Skipping incomplete article: ${article.url}`);
         }
       } catch (err) {
-        console.error(`❌ Error on ${article.url}:`, err.message);
+        // console.error(`❌ Error on ${article.url}:`, err.message);
       }
     }
 
-    console.log('✅ The Hindu scraping completed!');
+    // console.log('✅ The Hindu scraping completed!');
   } catch (error) {
-    console.error('🚨 Homepage fetch error:', error.message);
+    // console.error(' Homepage fetch error:', error.message);
   }
 }
 

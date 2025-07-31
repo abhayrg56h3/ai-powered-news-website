@@ -36,7 +36,7 @@ async function guardianNews() {
   const allArticles = [];
 
   try {
-    console.log('🌐 Fetching Guardian homepage...');
+    // console.log('🌐 Fetching Guardian homepage...');
     const { data } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -59,7 +59,7 @@ async function guardianNews() {
       }
     });
 
-    console.log(`📰 Found ${allArticles.length} articles`);
+    // console.log(`📰 Found ${allArticles.length} articles`);
 
     // Sequentially process articles 🚶‍♂️
     for (const article of allArticles) {
@@ -71,11 +71,11 @@ async function guardianNews() {
           };
         const exists = await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url);
         if (exists) {
-          console.log(`🔄 Already exists: ${article.url}`);
+          // console.log(`🔄 Already exists: ${article.url}`);
           continue;
         }
 
-        console.log(`📝 Fetching details: ${article.url}`);
+        // console.log(`📝 Fetching details: ${article.url}`);
         const res = await axios.get(article.url, {
           httpsAgent,
           timeout: 10000,
@@ -111,18 +111,18 @@ async function guardianNews() {
             'summarize',
             { newArticle: { ...article, source: 'The Guardian' } },
           );
-          console.log(`📤 Enqueued summary: ${article.title}`);
+          // console.log(`📤 Enqueued summary: ${article.title}`);
         } else {
-          console.warn(`⚠️ Skipped (missing content/image): ${article.url}`);
+          // console.warn(`⚠️ Skipped (missing content/image): ${article.url}`);
         }
       } catch (err) {
-        console.error(`❌ Error processing ${article.url}:`, err.message);
+        // console.error(`❌ Error processing ${article.url}:`, err.message);
       }
     }
 
-    console.log('✅ Guardian scraping completed!');
+    // console.log('✅ Guardian scraping completed!');
   } catch (error) {
-    console.error('🚨 Guardian homepage error:', error.message);
+    // console.error('🚨 Guardian homepage error:', error.message);
   }
 }
 

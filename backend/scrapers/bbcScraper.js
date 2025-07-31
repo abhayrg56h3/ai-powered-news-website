@@ -28,7 +28,7 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function scrapeBBCNews() {
   try {
-    console.log('🌐 Fetching BBC News homepage...');
+    // console.log('🌐 Fetching BBC News homepage...');
     const listRes = await axios.get(`${baseUrl}/news`, {
       httpsAgent,
       headers: {
@@ -49,7 +49,7 @@ async function scrapeBBCNews() {
       const title = $(el).find('h2').text().trim();
       if (title) links.push({ title, url: href });
     });
-    console.log(`📰 Found ${links.length} articles`);
+    // console.log(`📰 Found ${links.length} articles`);
 
     // Process each link sequentially 🚶‍♂️
     for (const { title, url } of links) {
@@ -57,7 +57,7 @@ async function scrapeBBCNews() {
         // Skip if already in DB
         if (await Url.exists({ url }) || await Article.exists({ url })) continue;
 
-        console.log(`📄 Fetching detail: ${title}`);
+        // console.log(`📄 Fetching detail: ${title}`);
         const detailRes = await axios.get(url, {
           httpsAgent,
           headers: {
@@ -108,18 +108,18 @@ async function scrapeBBCNews() {
             'summarize',
             { newArticle },
           );
-          console.log(`✅ Queued article: ${title}`);
+          // console.log(`✅ Queued article: ${title}`);
         } else {
-          console.warn(`⚠️ Skipping incomplete: ${title}`);
+          // console.warn(`⚠️ Skipping incomplete: ${title}`);
         }
       } catch (err) {
-        console.error(`❌ Error processing ${url}:`, err.message);
+        // console.error(`❌ Error processing ${url}:`, err.message);
       }
     }
 
-    console.log('✅ BBC scraping completed!');
+    // console.log('✅ BBC scraping completed!');
   } catch (err) {
-    console.error('🚨 BBC listing fetch error:', err.message);
+    // console.error('🚨 BBC listing fetch error:', err.message);
   }
 }
 

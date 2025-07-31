@@ -50,7 +50,7 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function scrapeAlJazeeraNews() {
   try {
-    console.log('🌐 Fetching Al Jazeera news list...');
+    // console.log('🌐 Fetching Al Jazeera news list...');
     const listRes = await axios.get(`${baseUrl}/news/`, {
       httpsAgent,
       headers: {
@@ -66,7 +66,7 @@ async function scrapeAlJazeeraNews() {
       const href = $(el).find('a.u-clickable-card__link').attr('href');
       if (href && !href.includes('/liveblog/')) links.push(baseUrl + href);
     });
-    console.log(`📰 Found ${links.length} articles`);
+    // console.log(`📰 Found ${links.length} articles`);
 
     // Process each link sequentially 🚶‍♂️
     for (const url of links) {
@@ -74,7 +74,7 @@ async function scrapeAlJazeeraNews() {
         // Skip if already in DB
         if (await Url.exists({ url }) || await Article.exists({ url })) continue;
 
-        console.log(`📄 Fetching detail: ${url}`);
+        // console.log(`📄 Fetching detail: ${url}`);
         const detailRes = await axios.get(url, {
           httpsAgent,
           headers: {
@@ -133,25 +133,25 @@ async function scrapeAlJazeeraNews() {
             );
 
 
-            console.log(`✅ Queued: ${url}`);
+            // console.log(`✅ Queued: ${url}`);
           } catch (err) {
             if (err.message.includes('Job already exists')) {
-              console.log(`⏭️ Duplicate job skipped: ${url}`);
+              // console.log(`⏭️ Duplicate job skipped: ${url}`);
             } else {
               throw err;
             }
           }
         } else {
-          console.warn(`⚠️ Incomplete: ${url}`);
+          // console.warn(`⚠️ Incomplete: ${url}`);
         }
       } catch (err) {
-        console.error(`❌ Error processing ${url}:`, err.message);
+        // console.error(`❌ Error processing ${url}:`, err.message);
       }
     }
 
-    console.log('✅ Al Jazeera scraping done');
+    // console.log('✅ Al Jazeera scraping done');
   } catch (err) {
-    console.error('🚨 Fetch error:', err.message);
+    // console.error('🚨 Fetch error:', err.message);
   }
 }
 

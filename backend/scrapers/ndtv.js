@@ -28,7 +28,7 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function ndtvNews() {
   try {
-    console.log('🌐 Fetching NDTV homepage...');
+    // console.log('🌐 Fetching NDTV homepage...');
     const { data: homeHtml } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -57,7 +57,7 @@ async function ndtvNews() {
         links.push({ title, url: href, content: '', image: '' });
       }
     });
-    console.log(`📰 Found ${links.length} candidate links.`);
+    // console.log(`📰 Found ${links.length} candidate links.`);
 
     // Process each article sequentially 🚶‍♂️
     for (const article of links) {
@@ -65,7 +65,7 @@ async function ndtvNews() {
         // Skip if already in DB
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) continue;
 
-        console.log(`🔗 Fetching: ${article.url}`);
+        // console.log(`🔗 Fetching: ${article.url}`);
         const { data: artHtml } = await axios.get(article.url, {
           httpsAgent,
           headers: {
@@ -103,18 +103,18 @@ async function ndtvNews() {
             'summarize',
             { newArticle },
           );
-          console.log(`✅ Enqueued: ${article.title}`);
+          // console.log(`✅ Enqueued: ${article.title}`);
         } else {
-          console.warn(`⚠️ Skipped (too short/incomplete): ${article.url}`);
+          // console.warn(`⚠️ Skipped (too short/incomplete): ${article.url}`);
         }
       } catch (err) {
-        console.error(`❌ Error at ${article.url}:`, err.message);
+        // console.error(`❌ Error at ${article.url}:`, err.message);
       }
     }
 
-    console.log('🎉 NDTV scraping completed!');
+    // console.log('🎉 NDTV scraping completed!');
   } catch (err) {
-    console.error('🚨 Failed to fetch homepage:', err.message);
+    // console.error('🚨 Failed to fetch homepage:', err.message);
   }
 }
 
