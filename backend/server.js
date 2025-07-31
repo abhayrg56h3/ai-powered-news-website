@@ -103,27 +103,27 @@ mongoose
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
 
-     scrapeBBCNews();
-  scrapeAlJazeeraNews();
-  theHinduNews();
-  toiNews();
-  ndtvNews();
-  cnbcNews();
-  guardianNews();
-  scrapeTechCrunchNews();
+//      scrapeBBCNews();
+//   scrapeAlJazeeraNews();
+//   theHinduNews();
+//   toiNews();
+//   ndtvNews();
+//   cnbcNews();
+//   guardianNews();
+//   scrapeTechCrunchNews();
 
-    setInterval(() => {
+//     setInterval(() => {
 
-  scrapeBBCNews();
-  scrapeAlJazeeraNews();
-  theHinduNews();
-  toiNews();
-  ndtvNews();
-  cnbcNews();
-  guardianNews();
-  scrapeTechCrunchNews();
- console.log("🛠️ All scrapers and cron jobs started!");
-}, 3 * 60 * 60 * 1000);
+//   scrapeBBCNews();
+//   scrapeAlJazeeraNews();
+//   theHinduNews();
+//   toiNews();
+//   ndtvNews();
+//   cnbcNews();
+//   guardianNews();
+//   scrapeTechCrunchNews();
+//  console.log("🛠️ All scrapers and cron jobs started!");
+// }, 3 * 60 * 60 * 1000);
 
     userPreferenceCron.start();
     articleDeletionCron.start();
