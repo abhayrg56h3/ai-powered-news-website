@@ -236,10 +236,25 @@ const summarizeWorker = new Worker(
     }
 
       const record=await DailyCount.findOne({ date: new Date().toISOString().split('T')[0] });
-          if( record && record.count >= 100) {
+          if( record && record.count >= 80) {
             await summarizerQueue.add('summarizer', { newArticle }, { delay: 1000 * 60 *60 * 24  }); // Retry after 24 hours
         // console.log("❌ Daily limit reached, skipping article:", newArticle.title);
         return;
+      }
+      else{
+           const today = new Date().toISOString().split('T')[0];
+await DailyCount.findOneAndUpdate(
+  { date: today },
+  {
+    $inc: { count: 1 },
+    $setOnInsert: { date: today }
+  },
+  {
+    upsert: true,
+    new: true,
+    setDefaultsOnInsert: true
+  }
+);
       }
     try {
 
@@ -360,18 +375,8 @@ const summarizeWorker = new Worker(
 
         await Url.findOneAndDelete({ url: newArticle.url });
 
-     const today = new Date().toISOString().split('T')[0];
- await DailyCount.findOneAndUpdate(
-  { date: today },
-  {
-    $inc: { count: 1 },        // Increment count if exists
-    $setOnInsert: { count: 1 } // If new, set count to 1
-  },
-  {
-    upsert: true,   // Insert if not found
-   
-  }
-);
+  
+
 
         return summary;
       }
