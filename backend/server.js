@@ -130,10 +130,10 @@ mongoose
     }
 
     // 🚀 First run immediately…
-    await runAllScrapers();
+    // await runAllScrapers();
 
-    // …then schedule every 3 hours
-    setInterval(runAllScrapers, 3 * 60 * 60 * 1000);
+    // // …then schedule every 3 hours
+    // setInterval(runAllScrapers, 3 * 60 * 60 * 1000);
 
     // start your crons
     userPreferenceCron.start();
