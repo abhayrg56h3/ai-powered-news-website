@@ -1,4 +1,4 @@
-import { 
+import {
   Newspaper,      // Used for NewsBot logo and signature
   AlertTriangle,  // Used for breaking news badge
   BookOpen,       // Used for reading description
@@ -22,10 +22,10 @@ import { index } from "../utils/pineconeClient.js";
 import { only } from "node:test";
 import dotenv from "dotenv";
 import Url from "../models/Url.js";
-import { lastExhaustionTime } from "../pool/summarize-pool.js";
 import User from "../models/User.js";
+import DailyCount from '../models/DailyCount.js';
 dotenv.config();
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hrs
+
 
 
 let usersEmail = [];
@@ -102,11 +102,11 @@ const transporter = nodemailer.createTransport({
 async function sendBreakingEmail(article, userEmail) {
   const fullUrl = `${process.env.FRONTEND_URL}/articledetail/${article._id}`;
 
- await transporter.sendMail({
-  from: `"NewsBot 🗞️" <${process.env.GMAIL_ID}>`,
-  to: userEmail,
-  subject: `BREAKING: ${article.title}`,
-  html: `
+  await transporter.sendMail({
+    from: `"NewsBot 🗞️" <${process.env.GMAIL_ID}>`,
+    to: userEmail,
+    subject: `BREAKING: ${article.title}`,
+    html: `
     <div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; line-height: 1.6; color: #333;">
       
       <!-- Header with gradient background -->
@@ -195,7 +195,7 @@ async function sendBreakingEmail(article, userEmail) {
 
     </div>
   `,
-});
+  });
 
   console.log(`📩 Email sent for: ${article.title}`);
 }
@@ -219,7 +219,7 @@ const sourceMap = Object.fromEntries(sourceLogos.map((s) => [s.name, { ...s }]))
 
 const summarizeWorker = new Worker(
   "summarizerQueue",
-      
+
 
   async function (task) {
     //  console.log(task.data);
@@ -228,34 +228,31 @@ const summarizeWorker = new Worker(
 
 
 
-      const sinceEx = Date.now() - lastExhaustionTime;
-    if (sinceEx < COOLDOWN_MS) {
-      const retryDelay = COOLDOWN_MS - sinceEx + 1000;
-      console.log(`⏳ Cooling down for another ${Math.ceil(retryDelay/1000)}s, re-queueing…`);
-      await summarizerQueue.add('summarizer', { newArticle }, { delay: retryDelay });
-      return;
-    }
 
-    // 🛑 2) MongoDB readiness check
-    // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
     if (mongoose.connection.readyState !== 1) {
       console.log('⚠️ MongoDB not ready, retrying in 5s…');
       await summarizerQueue.add('summarizer', { newArticle }, { delay: 5000 });
       return;
     }
 
+      const record=await DailyCount.findOne({ date: new Date().toISOString().split('T')[0] });
+          if( record && record.count >= 100) {
+            await summarizerQueue.add('summarizer', { newArticle }, { delay: 1000 * 60 *60 * 24  }); // Retry after 24 hours
+        console.log("❌ Daily limit reached, skipping article:", newArticle.title);
+        return;
+      }
     try {
 
 
 
-    
+
       // console.log(newArticle)
       const summary = await pool.exec("getSummary", [newArticle.content]);
 
 
       const breakingScore = await pool.exec("isBreakingNews", [summary]);
       const tags = await pool.exec("getTags", [summary]);
-      console.log("Tags generated:", tags);
+      // console.log("Tags generated:", tags);
 
       const embedding = await pool.exec("getEmbedding", [newArticle.content]);
       let topic = await pool.exec("getTopic", [summary]);
@@ -274,12 +271,12 @@ const summarizeWorker = new Worker(
           tags,
           embedding
         });
-        // console.log("finalAticle",finalArticle);
+        console.log("finalAticle", finalArticle);
 
         const onlyEnglish = str => /^[A-Za-z\s]+$/.test(str);
 
 
-        if (breakingScore >=90) {
+        if (breakingScore>=90) {
           usersEmail.map(function (email) {
 
             sendBreakingEmail(finalArticle, email);
@@ -357,12 +354,24 @@ const summarizeWorker = new Worker(
               name: finalArticle.source,
               logoUrl: matchedSource.logo || "",
             }
-          }, 
+          },
           { upsert: true }
         );
 
-     await  Url.findOneAndDelete({ url: newArticle.url });
-        
+        await Url.findOneAndDelete({ url: newArticle.url });
+
+     const today = new Date().toISOString().split('T')[0];
+ await DailyCount.findOneAndUpdate(
+  { date: today },
+  {
+    $inc: { count: 1 },        // Increment count if exists
+    $setOnInsert: { count: 1 } // If new, set count to 1
+  },
+  {
+    upsert: true,   // Insert if not found
+   
+  }
+);
 
         return summary;
       }
@@ -371,7 +380,13 @@ const summarizeWorker = new Worker(
       throw err;
     }
   },
-  { connection }
+  {
+    connection, limiter: {
+      max: 1,            // ✅ Max 2 jobs
+      duration: 60_000,  // ✅ Per 60 seconds (1 minute)
+    }
+  }
+
 );
 
 process.on("SIGINT", () => pool.terminate());

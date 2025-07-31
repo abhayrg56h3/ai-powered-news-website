@@ -1,5 +1,4 @@
 // scrapeTechCrunch.js
-
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as cheerio from 'cheerio';
@@ -8,7 +7,6 @@ import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import Redis from 'ioredis';
 import Url from '../models/Url.js';
-
 
 // ─── User‑Agent Pool ────────────────────────────────────────────────────────────
 const agents = [
@@ -35,22 +33,17 @@ const RSS_URL  = 'https://feeds.feedburner.com/TechCrunch/';
 // ─── Helper: Clean and normalize image URL ──────────────────────────────────────
 function cleanImageUrl(url) {
   if (!url) return '';
-  
   // Fix protocol-relative URLs
   if (url.startsWith('//')) url = 'https:' + url;
-  
   // Fix relative paths
   if (url.startsWith('/')) {
     // Ensure we don't have extra spaces in the base URL
     url = 'https://techcrunch.com' + url;
   }
-  
   // Remove query parameters that cause 404s
   url = url.split('?')[0].trim();
-  
   // Additional cleanup for common issues
   url = url.replace(/\/{2,}/g, '/').replace(':/', '://');
-  
   return url;
 }
 
@@ -61,7 +54,6 @@ function extractFeaturedImage($) {
   for (const el of ldJsonScripts.toArray()) {
     try {
       const data = JSON.parse($(el).html());
-      
       // Handle graph structure
       if (data['@graph']) {
         for (const item of Array.isArray(data['@graph']) ? data['@graph'] : [data]) {
@@ -73,7 +65,6 @@ function extractFeaturedImage($) {
               return cleanImageUrl(typeof item.image[0] === 'string' ? item.image[0] : item.image[0].url);
             }
           }
-          
           // Look for ImageObject
           if (item['@type'] === 'ImageObject' && item.contentUrl) {
             return cleanImageUrl(item.contentUrl);
@@ -92,20 +83,16 @@ function extractFeaturedImage($) {
       continue;
     }
   }
-
   // 2. Try og:image meta tag
   const ogImage = $('meta[property="og:image"]').attr('content') || 
                  $('meta[name="og:image"]').attr('content');
   if (ogImage) return cleanImageUrl(ogImage);
-
   // 3. Try twitter:image meta tag
   const twitterImage = $('meta[name="twitter:image"]').attr('content');
   if (twitterImage) return cleanImageUrl(twitterImage);
-
   // 4. Try to find highest resolution from srcset
   const $mainImage = $('figure.wp-block-post-featured-image img, .article-content img, .post-content img, .loop-card__figure img').first();
   const srcset = $mainImage.attr('srcset') || $mainImage.attr('data-srcset');
-  
   if (srcset) {
     // Parse srcset into URLs and widths
     const urls = srcset.split(',').map(s => {
@@ -114,26 +101,21 @@ function extractFeaturedImage($) {
       const width = parts.length > 1 ? parseInt(parts[1]) : 0;
       return { url, width: width || 0 };
     }).filter(item => item.url);
-    
     // Sort by width (largest first) and return the largest
     if (urls.length > 0) {
       urls.sort((a, b) => b.width - a.width);
       return cleanImageUrl(urls[0].url);
     }
   }
-
   // 5. Fallback to direct src attributes
   const directSrc = $mainImage.attr('data-src') || 
                    $mainImage.attr('src') ||
                    $('meta[property="og:image"]').attr('content') ||
                    $('link[rel="image_src"]').attr('href');
-  
   if (directSrc) return cleanImageUrl(directSrc);
-
   // 6. Last resort: look for any image in the article
   const anyImage = $('article img, .post-content img').first().attr('src') ||
                   $('article img, .post-content img').first().attr('data-src');
-  
   return anyImage ? cleanImageUrl(anyImage) : '';
 }
 
@@ -144,27 +126,21 @@ async function fetchPreviewsFromHTML() {
     headers: { 'User-Agent': agents[Math.random() * agents.length | 0] },
     timeout: 10000,
   });
-
   const $ = cheerio.load(data);
   const previews = [];
   const blocks = $('div.river .post-block')
     .add('article.post-block')
     .add('div.latest-stories article')
     .add('li.wp-block-post');
-
   blocks.each((_, el) => {
     const $el = $(el);
-    
     // Find title and URL
     const linkEl = $el.find('a.post-block__title__link, h2.post-title a, h3.loop-card__title a')
       .first();
-      
     const title = linkEl.text().trim();
     let url = linkEl.attr('href') || '';
-    
     // Skip if no title or invalid URL pattern
     if (!title || !url) return;
-    
     // Clean and normalize URL
     if (!url.startsWith('http')) {
       if (url.startsWith('/')) {
@@ -173,29 +149,23 @@ async function fetchPreviewsFromHTML() {
         url = 'https://techcrunch.com/' + url;
       }
     }
-    
     // Extract image from this preview element
     let img = '';
-    
     // Try to find image in this block
     const imgEl = $el.find('img.wp-post-image, img.attachment-card-block-16x9, figure img').first();
     if (imgEl.length) {
       img = imgEl.attr('data-src') || imgEl.attr('src') || '';
-      
       // Handle srcset if available
       const srcset = imgEl.attr('srcset');
       if (srcset) {
         const urls = srcset.split(',').map(s => s.trim().split(/\s+/)[0]);
         if (urls.length > 0) img = urls[0];
       }
-      
       // Clean image URL
       img = cleanImageUrl(img);
     }
-    
     previews.push({ title, url, image: img, content: '' });
   });
-
   return previews;
 }
 
@@ -211,12 +181,10 @@ async function fetchPreviewsFromRSS() {
     const title = $(el).find('title').text().trim();
     let url = $(el).find('link').text().trim();
     const img = $(el).find('media\\:content, media\\:thumbnail, enclosure').attr('url') || '';
-    
     // Clean URL
     if (url && !url.startsWith('http')) {
       url = 'https://techcrunch.com' + url;
     }
-    
     if (title && url) previews.push({ title, url, image: cleanImageUrl(img), content: '' });
   });
   return previews;
@@ -226,7 +194,6 @@ async function fetchPreviewsFromRSS() {
 async function scrapeTechCrunch() {
   console.log('🌐 Fetching previews from TechCrunch…');
   let previews = [];
-  
   try {
     previews = await fetchPreviewsFromHTML();
     console.log(`📰 Got ${previews.length} previews from HTML`);
@@ -241,20 +208,15 @@ async function scrapeTechCrunch() {
       return;
     }
   }
-
   if (previews.length === 0) {
     console.warn('⚠️ No previews found from either source');
     return;
   }
-
-
-
-  console.log(`🔍 Found ${uniq.length} unique previews, ${newArticles.length} new articles to process`);
-
-  for (const art of newArticles) {
+  
+  // FIXED: Changed from newArticles to previews (bug #1)
+  for (const art of previews) {
     try {
-        
-       if( await Url.exists({ url: art.url }) || await Article.exists({ url: art.url })) continue;
+      if (await Url.exists({ url: art.url }) || await Article.exists({ url: art.url })) continue;
       console.log(`📥 Fetching detail: ${art.url}`);
       const { data: html } = await axios.get(art.url, {
         httpsAgent,
@@ -262,7 +224,6 @@ async function scrapeTechCrunch() {
         timeout: 15000,
       });
       const $ = cheerio.load(html);
-
       // 🔍 Extract full text
       const paras = [];
       $('article.post article, div.article-content, div.post-content, div.wp-block-post-content').each((_, content) => {
@@ -272,7 +233,6 @@ async function scrapeTechCrunch() {
           if (t.length > 30) paras.push(t);
         });
       });
-      
       // If we didn't find content with the above selectors, try a more general approach
       if (paras.length < 3) {
         $('article p, .entry-content p, .post-body p').each((i, p) => {
@@ -280,15 +240,12 @@ async function scrapeTechCrunch() {
           if (t.length > 30) paras.push(t);
         });
       }
-      
-      art.content = paras.join('\n\n');
-
+     
+      art.content = paras.join('\n');
       // 🖼️ Extract featured image using our robust method
       art.image = extractFeaturedImage($);
-
       console.log('🖼️ Image URL:', art.image);
       console.log('📄 Content length:', art.content.length);
-
       // ✅ Queue if valid
       if (art.content && art.content.length > 100 && art.image) {
         const newUrl = new Url({
@@ -304,15 +261,10 @@ async function scrapeTechCrunch() {
         if (!art.content || art.content.length < 100) console.warn('⚠️ Content too short');
         if (!art.image) console.warn('⚠️ No image found');
       }
-
     } catch (e) {
       console.error(`❌ Error fetching detail for ${art.url}:`, e.message);
     }
   }
-
   console.log('🎉 Scrape finished!');
 }
-
-
-
 export default scrapeTechCrunch;

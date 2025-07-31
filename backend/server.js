@@ -18,6 +18,7 @@ import { authRouter } from "./routes/auth.js";
 import { userRouter } from "./routes/user.js";
 import {userPreferenceCron} from "./cron/userPreferenceCron.js";
 import { articleDeletionCron } from "./cron/userPreferenceCron.js";
+import { dailyCountDeletion } from "./cron/userPreferenceCron.js";
 import ndtvNews from "./scrapers/ndtv.js";
 import cnbcNews from "./scrapers/cnbc.js";
 import guardianNews from "./scrapers/thegaurdian.js";
@@ -102,6 +103,15 @@ mongoose
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
 
+     scrapeBBCNews();
+  scrapeAlJazeeraNews();
+  theHinduNews();
+  toiNews();
+  ndtvNews();
+  cnbcNews();
+  guardianNews();
+  scrapeTechCrunchNews();
+
     setInterval(() => {
 
   scrapeBBCNews();
@@ -112,14 +122,14 @@ mongoose
   cnbcNews();
   guardianNews();
   scrapeTechCrunchNews();
-
+ console.log("🛠️ All scrapers and cron jobs started!");
 }, 3 * 60 * 60 * 1000);
 
     userPreferenceCron.start();
     articleDeletionCron.start();
+    dailyCountDeletion.start();
 
-    // ✅ Optional: log that background tasks started
-    console.log("🛠️ All scrapers and cron jobs started!");
+   
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);

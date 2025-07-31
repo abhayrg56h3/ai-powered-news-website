@@ -3,7 +3,7 @@ import { exec } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-
+import DailyCount from '../models/DailyCount.js';
 // Handle __dirname in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,9 +56,21 @@ const articleDeletionCron = cron.schedule(
   }
 );
 
-// ✅ Start cron jobs manually
-userPreferenceCron.start();
-articleDeletionCron.start();
+
+const dailyCountDeletion = cron.schedule('59 23 * * *', async () => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const deleted = await DailyCount.deleteOne({ date: today });
+    
+    if (deleted.deletedCount > 0) {
+      console.log(`🧹 Daily scrape record for ${today} deleted successfully 🗑️`);
+    } else {
+      console.log(`ℹ️ No scrape record to delete for ${today}`);
+    }
+  } catch (err) {
+    console.error("❌ Error deleting daily count at EOD:", err);
+  }
+});
 
 // 🟢 Export them correctly!
-export { userPreferenceCron, articleDeletionCron };
+export { userPreferenceCron, articleDeletionCron, dailyCountDeletion };
