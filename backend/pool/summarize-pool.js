@@ -1,8 +1,10 @@
 import * as workerpool from "workerpool";
 import OpenAI from 'openai';
 import { initModel } from "../ai-services/summarizer.js";
+import dotenv from 'dotenv';
+dotenv.config();
 
-const a4fApiKey = "ddc-a4f-0988c24f4e8a4794b6fb962e91c02444";
+const a4fApiKey = process.env.a4fApiKey;
 const a4fBaseUrl = 'https://api.a4f.co/v1';
 
 if (!a4fApiKey) {

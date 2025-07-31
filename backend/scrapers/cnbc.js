@@ -8,7 +8,6 @@ import Url from '../models/Url.js';
 import pLimit from 'p-limit';
 import globalLimiter from '../utils/limiter.js';
 
-// Base URL and User-Agent pool
 const baseUrl = 'https://www.cnbc.com';
 const agents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
@@ -18,7 +17,6 @@ const agents = [
   'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Mobile/14E304',
 ];
 
-// Retry on network errors
 axiosRetry(axios, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
@@ -26,12 +24,10 @@ axiosRetry(axios, {
     axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === 'ECONNRESET',
 });
 
-// HTTPS agent for keep-alive
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function cnbcNews() {
   try {
-    // console.log('🔍 Fetching CNBC homepage...');
     const { data } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -43,16 +39,13 @@ async function cnbcNews() {
     });
     const $ = cheerio.load(data);
 
-    // Select links containing date pattern
     const links = [];
     $('a[href*="/2025/"]').each((_, el) => {
       let url = $(el).attr('href');
       const title = $(el).text().trim();
       if (!title || !url.endsWith('.html')) return;
-      // Normalize URL
       if (!url.startsWith('http')) url = baseUrl + url;
 
-      // Extract initial image
       let image = null;
       const imgTag = $(el).find('img').first();
       if (imgTag.length) image = imgTag.attr('src') || imgTag.attr('data-src');
@@ -60,16 +53,12 @@ async function cnbcNews() {
       links.push({ title, url, image, content: '' });
     });
 
-
     const articles = links;
 
-    // Process each article sequentially 🚶‍♀️
-  const tasks = articles.map(article => globalLimiter(async () => {
+    const tasks = articles.map(article => globalLimiter(async () => {
       try {
-        // Skip if already in DB
-      if( await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) return;
+        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) return;
 
-        // console.log(`📥 Fetching page: ${article.url}`);
         const res = await axios.get(article.url, {
           httpsAgent,
           headers: {
@@ -79,46 +68,38 @@ async function cnbcNews() {
         });
         const $$ = cheerio.load(res.data);
 
-        // Extract content paragraphs
-        article.content = $$('div.ArticleBody-articleBody p')
+        const paras = $$('div.ArticleBody-articleBody p')
           .map((i, p) => $$(p).text().trim())
           .get()
-          .filter(t => t.length > 20)
-          .join(' ');
+          .filter(t => t.length > 20);
 
-        // Fallback OG image
+        article.content = paras.join('\n\n');
+
+        $$.root().remove();
+
         if (!article.image) {
           const og = $$('meta[property="og:image"]').attr('content');
           if (og && og.startsWith('http')) article.image = og;
         }
-
-        // Enqueue if valid
-       
+         console.log("content length:", article.content.length);
+         console.log("image:", article.image);
         if (article.content && article.image) {
-          const newUrl= new Url({
-            url: article.url
-          });
+          const newUrl = new Url({ url: article.url });
           await newUrl.save();
           await summarizerQueue.add(
             'summarize',
             { newArticle: { ...article, source: 'CNBC' } },
           );
-          // console.log (`✅ Queued: ${article.url}`);
-        } else {
-          // console.warn(`⚠️ Incomplete, skipped: ${article.url}`);
         }
       } catch (err) {
-        // console.error(`❌ Error processing ${article.url}:`, err.message);
+        // error logging suppressed
       }
-    }));  
-    await Promise.all(tasks);
+    }));
 
-    // console.log('🎉 CNBC scraping completed');
+    await Promise.all(tasks);
   } catch (err) {
-    // console.error('🚨 Fetch error:', err.message);
+    // error logging suppressed
   }
 }
-
-
 
 export default cnbcNews;

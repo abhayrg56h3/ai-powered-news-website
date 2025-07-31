@@ -9,10 +9,13 @@ import Article from '../models/Article.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
 import globalLimiter from '../utils/limiter.js';
+
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 const limit = pLimit(5);
+
 // 🔗 Base URL and User-Agent pool
 const baseUrl = 'https://timesofindia.indiatimes.com/';
 const agents = [
@@ -66,12 +69,11 @@ async function toiNews() {
 
     // console.log(`📰 Found ${allArticles.length} article previews`);
 
-    // Process each article sequentially 🚶‍♂️
-  const tasks = allArticles.map(article => globalLimiter(async () => {
+    // Process each article concurrently up to limit
+    const tasks = allArticles.map(article => globalLimiter(async () => {
       try {
         // Skip if already processed 🔄
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
-          // console.log(`🔄 Already exists: ${article.url}`);
           return;
         }
 
@@ -101,15 +103,16 @@ async function toiNews() {
           if (src) article.image = src.startsWith('http') ? src : new URL(src, baseUrl).href;
         }
 
+        // 🔥 Free up Cheerio DOM memory
+        $$.root().remove();
+   console.log("content length:", article.content.length);
+      console.log("image",article.image);
         // Enqueue summarization ✅
         if (article.content && article.image) {
           const newArticle = { ...article, source: 'Times of India' };
           const newUrl = new Url({ url: article.url });
           await newUrl.save();
-          await summarizerQueue.add(
-            'summarize',
-            { newArticle },
-          );
+          await summarizerQueue.add('summarize', { newArticle });
           // console.log(`📩 Queued article: ${article.title}`);
         } else {
           // console.warn(`⚠️ Skipping incomplete: ${article.url}`);
@@ -118,6 +121,7 @@ async function toiNews() {
         // console.error(`❌ Detail fetch error: ${article.url}`, err.message);
       }
     }));
+
     await Promise.all(tasks);
 
     // console.log('✅ TOI scraping completed successfully.');
@@ -125,7 +129,5 @@ async function toiNews() {
     // console.error('🌐 Network or parsing error:', error.message);
   }
 }
-
-
 
 export default toiNews;

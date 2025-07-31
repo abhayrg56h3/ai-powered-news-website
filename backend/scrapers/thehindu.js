@@ -9,6 +9,7 @@ import Article from '../models/Article.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
 import globalLimiter from '../utils/limiter.js';
+
 // Setup __dirname
 const limit = pLimit(5);
 const __filename = fileURLToPath(import.meta.url);
@@ -39,7 +40,6 @@ async function theHinduNews() {
   const allArticles = [];
 
   try {
-    // console.log('🌐 Fetching The Hindu homepage...');
     const { data } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -49,9 +49,9 @@ async function theHinduNews() {
       },
       timeout: 10000,
     });
+
     const $ = cheerio.load(data);
 
-    // Scrape headlines 📰
     $('.element').each((_, el) => {
       const titleEl = $(el).find('h3.title a, h2.title a, h1.title a');
       const title = titleEl.text().trim();
@@ -61,70 +61,65 @@ async function theHinduNews() {
         allArticles.push({ title, url, image: null, content: '' });
       }
     });
-    // console.log(`📰 Found ${allArticles.length} articles`);
 
-    // Process each article sequentially 🚶‍♂️
- const tasks = allArticles.map(article => globalLimiter(async () => {
-      try {
+    // Process each article
+    const tasks = allArticles.map(article =>
+      globalLimiter(async () => {
+        try {
+          const urlExists = await Url.exists({ url: article.url });
+          const articleExists = await Article.exists({ url: article.url });
+          if (urlExists || articleExists) return;
 
-        // Skip if already in DB 🔄
-        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
-          // console.log(`🔄 Already exists: ${article.url}`);
-          return;
+          const detailRes = await axios.get(article.url, {
+            httpsAgent,
+            headers: {
+              'User-Agent': agents[Math.floor(Math.random() * agents.length)],
+            },
+            timeout: 10000,
+          });
+
+          const $$ = cheerio.load(detailRes.data);
+
+          const paras = $$('div.articlebodycontent .schemaDiv > p')
+            .filter((_, p) => {
+              const t = $$(p).text().trim();
+              return t && !/^Published\s*-/.test(t) && !/^(Photo Credit:|Also Read)/.test(t);
+            })
+            .map((_, p) => $$(p).text().trim())
+            .get();
+
+          article.content = paras.join(' ');
+
+          // Image extraction
+          const imgUrl =
+            $$('span[itemprop="image"] meta[itemprop="url"]').attr('content') ||
+            $$('meta[itemprop="image"]').attr('content') ||
+            null;
+
+          article.image = imgUrl;
+
+          // 🔥 FREE MEMORY
+          $$.root().remove();  // 🧹 tear down cheerio
+          detailRes.data = null; // 🧹 discard heavy page content
+          global.gc?.(); // 🧠 force garbage collection if enabled with --expose-gc
+      console.log("content length:", article.content.length);
+      console.log("image",article.image);
+          if (article.content && article.image) {
+            const newArticle = { ...article, source: 'The Hindu' };
+            const newUrl = new Url({ url: article.url });
+            await newUrl.save();
+            await summarizerQueue.add('summarize', { newArticle });
+          }
+        } catch (err) {
+          // console.error(`❌ Error on ${article.url}:`, err.message);
         }
-
-        // console.log(`🔗 Fetching detail: ${article.url}`);
-        const { data: artHtml } = await axios.get(article.url, {
-          httpsAgent,
-          headers: {
-            'User-Agent': agents[Math.floor(Math.random() * agents.length)],
-          },
-          timeout: 10000,
-        });
-        const $$ = cheerio.load(artHtml);
-
-        // Extract paragraphs ✍️
-        const paras = $$('div.articlebodycontent .schemaDiv > p')
-          .filter((_, p) => {
-            const t = $$(p).text().trim();
-            return t && !/^Published\s*-/.test(t) && !/^(Photo Credit:|Also Read)/.test(t);
-          })
-          .map((_, p) => $$(p).text().trim())
-          .get();
-        article.content = paras.join(' ');
-
-        // Extract image via schema metadata 📸
-        const imgUrl =
-          $$('span[itemprop="image"] meta[itemprop="url"]').attr('content') ||
-          $$('meta[itemprop="image"]').attr('content') ||
-          null;
-        article.image = imgUrl;
-
-        // Enqueue if valid ✅
-        if (article.content && article.image) {
-          const newArticle = { ...article, source: 'The Hindu' };
-          const newUrl = new Url({ url: article.url });
-          await newUrl.save();
-          await summarizerQueue.add(
-            'summarize',
-            { newArticle }
-          );
-          // console.log(`📤 Enqueued: ${article.title}`);
-        } else {
-          // console.warn(`⚠️ Skipping incomplete article: ${article.url}`);
-        }
-      } catch (err) {
-        // console.error(`❌ Error on ${article.url}:`, err.message);
-      }
-    }));
+      })
+    );
 
     await Promise.all(tasks);
-
-    // console.log('✅ The Hindu scraping completed!');
   } catch (error) {
-    // console.error(' Homepage fetch error:', error.message);
+    // console.error('Homepage fetch error:', error.message);
   }
 }
-
 
 export default theHinduNews;

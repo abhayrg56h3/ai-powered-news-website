@@ -97,6 +97,12 @@ async function guardianNews() {
           } catch {}
         }
 
+        // 🔥 FREE UP Cheerio memory
+        $$.root().remove();
+
+        console.log("📝 content length:", article.content.length);
+        console.log("📸 image:", article.image);
+
         // Save & queue if valid
         if (article.content && article.image) {
           await new Url({ url: article.url }).save();

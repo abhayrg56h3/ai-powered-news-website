@@ -2,16 +2,11 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as cheerio from 'cheerio';
 import https from 'https';
-import pLimit from 'p-limit';
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import globalLimiter from '../utils/limiter.js';
 
-// Concurrency limiter: only 5 tasks at a time
-
-
-// Base URL and User-Agent pool
 const baseUrl = 'https://www.aljazeera.com';
 const agents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
@@ -21,7 +16,6 @@ const agents = [
   'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Mobile/14E304',
 ];
 
-// Configure axios retry on network errors
 axiosRetry(axios, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
@@ -29,12 +23,10 @@ axiosRetry(axios, {
     axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === 'ECONNRESET',
 });
 
-// HTTPS agent for keep-alive
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function scrapeAlJazeeraNews() {
   try {
-    // Fetch the news list
     const listRes = await axios.get(`${baseUrl}/news/`, {
       httpsAgent,
       headers: {
@@ -45,7 +37,6 @@ async function scrapeAlJazeeraNews() {
     });
     const $ = cheerio.load(listRes.data);
 
-    // Collect article URLs
     const links = [];
     $('article.u-clickable-card').each((_, el) => {
       const href = $(el).find('a.u-clickable-card__link').attr('href');
@@ -54,16 +45,13 @@ async function scrapeAlJazeeraNews() {
       }
     });
 
-    // Create scraping tasks with concurrency limit
     const tasks = links.map(url => globalLimiter(async () => {
-      // Skip if already processed
       if (await Url.exists({ url }) || await Article.exists({ url })) {
         console.log(`🔗 Already processed: ${url}`);
         return;
       }
 
       try {
-        // Fetch article detail
         const detailRes = await axios.get(url, {
           httpsAgent,
           headers: {
@@ -72,9 +60,8 @@ async function scrapeAlJazeeraNews() {
           },
           timeout: 10000,
         });
-        const $$ = cheerio.load(detailRes.data);
 
-        // Parse JSON data for content and image
+        const $$ = cheerio.load(detailRes.data);
         const raw = $$('#__NEXT_DATA__').html();
         let content = '';
         let image = '';
@@ -89,22 +76,31 @@ async function scrapeAlJazeeraNews() {
                 .join('\n\n');
             }
             image = story?.leadImage?.url || story?.imageUrl || '';
-          } catch {}
+          } catch (err) {
+            console.warn('⚠️ JSON parse fallback:', err.message);
+          }
         }
 
-        // Fallback scraping if JSON parse fails
         if (!content) {
           content = $$('div.wysiwyg p')
             .map((_, p) => $$(p).text().trim())
             .get()
             .join('\n\n');
         }
+
         if (!image) {
-          image = $$('meta[property="og:image"]').attr('content') || $$('figure img').first().attr('src') || '';
+          image =
+            $$('meta[property="og:image"]').attr('content') ||
+            $$('figure img').first().attr('src') || '';
           if (image.startsWith('/')) image = baseUrl + image;
         }
 
-        // If valid article, save URL and queue summary job
+        // 🔥 Memory cleanup
+        $$.root().remove(); // 🧹 important for reducing memory footprint
+
+        console.log("📝 content length:", content.length);
+        console.log("🖼️ image:", image);
+
         if (content && image) {
           await new Url({ url }).save();
           const newArticle = {
@@ -121,9 +117,8 @@ async function scrapeAlJazeeraNews() {
       }
     }));
 
-    // Execute tasks
     await Promise.all(tasks);
-    console.log('✅ Al Jazeera scraping done');
+    console.log('✅ Al Jazeera scraping done ✅');
   } catch (err) {
     console.error('🚨 Fetch list error:', err.message);
   }

@@ -7,10 +7,8 @@ import summarizerQueue from '../queues/aiQueue.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
 import globalLimiter from '../utils/limiter.js';
- 
 
 const limit = pLimit(5);
-// Base URL and User-Agent pool
 const baseUrl = 'https://www.ndtv.com';
 const agents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
@@ -20,7 +18,6 @@ const agents = [
   'Mozilla/5.0 (iPhone; CPU iPhone OS 10_3_1 like Mac OS X) AppleWebKit/603.1.30 (KHTML, like Gecko) Mobile/14E304',
 ];
 
-// Retry on network errors
 axiosRetry(axios, {
   retries: 3,
   retryDelay: axiosRetry.exponentialDelay,
@@ -28,12 +25,10 @@ axiosRetry(axios, {
     axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === 'ECONNRESET',
 });
 
-// HTTPS agent for keep-alive
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function ndtvNews() {
   try {
-    // console.log('🌐 Fetching NDTV homepage...');
     const { data: homeHtml } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -47,7 +42,6 @@ async function ndtvNews() {
     const $home = cheerio.load(homeHtml);
     const links = [];
 
-    // Collect candidate links
     $home('a').each((_, el) => {
       const href = $home(el).attr('href');
       const title = $home(el).text().trim();
@@ -62,67 +56,62 @@ async function ndtvNews() {
         links.push({ title, url: href, content: '', image: '' });
       }
     });
-    // console.log(`📰 Found ${links.length} candidate links.`);
 
-    // Process each article sequentially 🚶‍♂️
-    const tasks = links.map(article => globalLimiter(async () => {
-      try {
-        // Skip if already in DB
-        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) return;
+    const tasks = links.map(article =>
+      globalLimiter(async () => {
+        try {
+          if (
+            await Url.exists({ url: article.url }) ||
+            await Article.exists({ url: article.url })
+          ) return;
 
-        // console.log(`🔗 Fetching: ${article.url}`);
-        const { data: artHtml } = await axios.get(article.url, {
-          httpsAgent,
-          headers: {
-            'User-Agent': agents[Math.floor(Math.random() * agents.length)],
-          },
-          timeout: 10000,
-        });
-        const $ = cheerio.load(artHtml);
-
-        // Extract content paragraphs
-        const paragraphs = $('div[itemprop="articleBody"] p')
-          .map((_, p) => $(p).text().trim())
-          .get()
-          .filter(p => p.length > 0);
-        article.content = paragraphs.join('\n\n');
-
-        // Extract image
-        const imgEl = $('figure img, .ins_instory_dv img, .content_img img').first();
-        article.image = imgEl.attr('src') || '';
-
-        // Fallback OG image
-        if (!article.image) {
-          const og = $('meta[property="og:image"]').attr('content');
-          if (og && og.startsWith('http')) article.image = og;
-        }
-
-        // Enqueue summarization if valid
-        if (article.content.length > 100 && article.image) {
-          const newArticle = { ...article, source: 'NDTV' };
-          const newUrl = new Url({
-            url: article.url
+          const { data: artHtml } = await axios.get(article.url, {
+            httpsAgent,
+            headers: {
+              'User-Agent': agents[Math.floor(Math.random() * agents.length)],
+            },
+            timeout: 10000,
           });
-          await newUrl.save();
-          await summarizerQueue.add(
-            'summarize',
-            { newArticle },
-          );
-          // console.log(`✅ Enqueued: ${article.title}`);
-        } else {
-          // console.warn(`⚠️ Skipped (too short/incomplete): ${article.url}`);
-        }
-      } catch (err) {
-        // console.error(`❌ Error at ${article.url}:`, err.message);
-      }
-    }));
-    await Promise.all(tasks);   
 
-    // console.log('🎉 NDTV scraping completed!');
+          const $$ = cheerio.load(artHtml);
+
+          const paragraphs = $$('div[itemprop="articleBody"] p')
+            .map((_, p) => $$(p).text().trim())
+            .get()
+            .filter(p => p.length > 0);
+          article.content = paragraphs.join('\n\n');
+
+          const imgEl = $$('figure img, .ins_instory_dv img, .content_img img').first();
+          article.image = imgEl.attr('src') || '';
+
+          if (!article.image) {
+            const og = $$('meta[property="og:image"]').attr('content');
+            if (og && og.startsWith('http')) article.image = og;
+          }
+
+          // 🔥 Free memory by clearing DOM
+          $$.root().remove();
+
+
+          console.log("📝 content length:", article.content.length);
+          console.log("🖼️ image:", article.image);
+
+          if (article.content.length > 100 && article.image) {
+            const newArticle = { ...article, source: 'NDTV' };
+            const newUrl = new Url({ url: article.url });
+            await newUrl.save();
+            await summarizerQueue.add('summarize', { newArticle });
+          }
+        } catch (err) {
+          // Log if needed
+        }
+      })
+    );
+
+    await Promise.all(tasks);
   } catch (err) {
-    // console.error('🚨 Failed to fetch homepage:', err.message);
+    // Log if needed
   }
 }
-
 
 export default ndtvNews;
