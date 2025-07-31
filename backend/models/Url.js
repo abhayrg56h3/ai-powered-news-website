@@ -1,4 +1,4 @@
-// models/Url.js
+
 import mongoose from 'mongoose';
 
 const urlSchema = new mongoose.Schema({

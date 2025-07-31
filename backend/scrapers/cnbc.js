@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio';
 import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
-
+import Url from '../models/Url.js';
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.cnbc.com';
 const agents = [
@@ -57,20 +57,14 @@ async function cnbcNews() {
       links.push({ title, url, image, content: '' });
     });
 
-    // Deduplicate URLs
-    const seen = new Set();
-    const articles = links.filter(a => {
-      if (seen.has(a.url)) return false;
-      seen.add(a.url);
-      return true;
-    });
-    console.log(`🛎️ Found ${articles.length} unique previews`);
+
+    const articles = links;
 
     // Process each article sequentially 🚶‍♀️
     for (const article of articles) {
       try {
         // Skip if already in DB
-        if (await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url)) continue;
+      if( await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) continue;
 
         console.log(`📥 Fetching page: ${article.url}`);
         const res = await axios.get(article.url, {
@@ -96,17 +90,17 @@ async function cnbcNews() {
         }
 
         // Enqueue if valid
+       
         if (article.content && article.image) {
+          const newUrl= new Url({
+            url: article.url
+          });
+          await newUrl.save();
           await summarizerQueue.add(
             'summarize',
             { newArticle: { ...article, source: 'CNBC' } },
-            {
-              jobId: article.url,           // 🏷️ unique ID
-              removeOnComplete: true,       // ✨ auto‑clean
-              removeOnFail: { age: 3600 },  // ⏳ clean failures after 1h
-            }
           );
-          console.log(`✅ Queued: ${article.url}`);
+          console.log (`✅ Queued: ${article.url}`);
         } else {
           console.warn(`⚠️ Incomplete, skipped: ${article.url}`);
         }
@@ -121,8 +115,6 @@ async function cnbcNews() {
   }
 }
 
-// Schedule: run immediately and every hour
-cnbcNews();
-setInterval(cnbcNews, 60 * 60 * 1000);
+
 
 export default cnbcNews;

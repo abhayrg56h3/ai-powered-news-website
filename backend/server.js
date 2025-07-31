@@ -18,16 +18,16 @@ import { authRouter } from "./routes/auth.js";
 import { userRouter } from "./routes/user.js";
 import {userPreferenceCron} from "./cron/userPreferenceCron.js";
 import { articleDeletionCron } from "./cron/userPreferenceCron.js";
-// import ndtvNews from "./scrapers/ndtv.js";
-// import cnbcNews from "./scrapers/cnbc.js";
-// import guardianNews from "./scrapers/thegaurdian.js";
-// import scrapeTechCrunchNews from "./scrapers/techcrunch.js";
-// import summarizeWorker from "./workers/summarize-workers.js";
-// import scrapeBBCNews from "./scrapers/bbcScraper.js";
-// import scrapeAlJazeeraNews from "./scrapers/aljazira.js";
-// import theHinduNews from "./scrapers/thehindu.js";
-// import toiNews from "./scrapers/timesofindia.js";
-import { topic_source_region_list_router } from "./routes/region-topic-source-route.js";
+import ndtvNews from "./scrapers/ndtv.js";
+import cnbcNews from "./scrapers/cnbc.js";
+import guardianNews from "./scrapers/thegaurdian.js";
+import scrapeTechCrunchNews from "./scrapers/techcrunch.js";
+import summarizeWorker from "./workers/summarize-workers.js";
+import scrapeBBCNews from "./scrapers/bbcScraper.js";
+import scrapeAlJazeeraNews from "./scrapers/aljazira.js";
+import theHinduNews from "./scrapers/thehindu.js";
+import toiNews from "./scrapers/timesofindia.js";
+import { topic_source_region_list_router  } from "./routes/region-topic-source-route.js";
 dotenv.config();
 const pool = workerpool.pool(
   path.resolve(__dirname, "./pool/summarize-pool.js"),
@@ -93,19 +93,44 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
 
-  mongoose.connection.on("error", (err) => {
+    // ✅ Start server AFTER Mongo is ready
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+
+    setInterval(() => {
+
+  scrapeBBCNews();
+  scrapeAlJazeeraNews();
+  theHinduNews();
+  toiNews();
+  ndtvNews();
+  cnbcNews();
+  guardianNews();
+  scrapeTechCrunchNews();
+
+}, 3 * 60 * 60 * 1000);
+
+    userPreferenceCron.start();
+    articleDeletionCron.start();
+
+    // ✅ Optional: log that background tasks started
+    console.log("🛠️ All scrapers and cron jobs started!");
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+    process.exit(1); // 🔥 Exit if DB can't connect
+  });
+
+mongoose.connection.on("error", (err) => {
   console.log("❌ MongoDB connection error: ", err);
 });
 
-// scrapeBBCNews();
 
-// Start Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+
 
 export default pool;

@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js'; // Adjust path as needed
 import Article from '../models/Article.js';
-
+import Url from '../models/Url.js';
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,8 +68,8 @@ async function toiNews() {
     for (const article of allArticles) {
       try {
         // Skip if already processed 🔄
-        if (await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url)) {
-          console.log(`🔄 Already processed: ${article.url}`);
+        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
+          console.log(`🔄 Already exists: ${article.url}`);
           continue;
         }
 
@@ -102,14 +102,11 @@ async function toiNews() {
         // Enqueue summarization ✅
         if (article.content && article.image) {
           const newArticle = { ...article, source: 'Times of India' };
+          const newUrl = new Url({ url: article.url });
+          await newUrl.save();
           await summarizerQueue.add(
             'summarize',
             { newArticle },
-            {
-              jobId: article.url,           // 🏷️ use URL as the unique ID
-              removeOnComplete: true,       // ✨ auto‑clean when done
-              removeOnFail: { age: 3600 },  // ⏳ and clean up failures after 1h
-            }
           );
           console.log(`📩 Queued article: ${article.title}`);
         } else {
@@ -126,8 +123,6 @@ async function toiNews() {
   }
 }
 
-// Schedule: run now, then every hour ⏰
-toiNews();
-setInterval(toiNews, 60 * 60 * 1000);
+
 
 export default toiNews;

@@ -37,6 +37,7 @@
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
     "lda": "^0.2.0",
+    "lucide-react": "^0.534.0",
     "mongoose": "^8.15.1",
     "morgan": "^1.10.0",
     "multer": "^2.0.2",

@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js';
 import Article from '../models/Article.js';
-
+import Url from '../models/Url.js';
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,6 +64,11 @@ async function guardianNews() {
     // Sequentially process articles 🚶‍♂️
     for (const article of allArticles) {
       try {
+        // Skip if already in DB
+        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
+          
+          continue
+          };
         const exists = await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url);
         if (exists) {
           console.log(`🔄 Already exists: ${article.url}`);
@@ -98,14 +103,13 @@ async function guardianNews() {
         }
 
         if (article.content && article.image) {
+          // Save URL to prevent re-fetching
+          const newUrl = new Url({ url: article.url });
+          await newUrl.save();
+
           await summarizerQueue.add(
             'summarize',
             { newArticle: { ...article, source: 'The Guardian' } },
-            {
-              jobId: article.url,
-              removeOnComplete: true,
-              removeOnFail: { age: 3600 },
-            }
           );
           console.log(`📤 Enqueued summary: ${article.title}`);
         } else {
@@ -122,8 +126,5 @@ async function guardianNews() {
   }
 }
 
-// Schedule: run now and every hour
-guardianNews();
-setInterval(guardianNews, 60 * 60 * 1000);
 
 export default guardianNews;

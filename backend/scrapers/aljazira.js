@@ -3,7 +3,29 @@ import axiosRetry from 'axios-retry';
 import * as cheerio from 'cheerio';
 import https from 'https';
 import Article from '../models/Article.js';
+import Url from '../models/Url.js';
 import summarizerQueue from '../queues/aiQueue.js';
+
+
+
+
+
+
+
+
+
+// Cleanup function to remove old entries
+function cleanupUrlCache() {
+  const now = Date.now();
+  for (const [url, timestamp] of urlTimestamps.entries()) {
+    if (now - timestamp > URL_CACHE_TTL) {
+      urlTimestamps.delete(url);
+      recentUrls.delete(url);
+    }
+  }
+}
+
+
 
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.aljazeera.com';
@@ -50,7 +72,7 @@ async function scrapeAlJazeeraNews() {
     for (const url of links) {
       try {
         // Skip if already in DB
-        if (await Article.exists({ url }) || await summarizerQueue.getJob(url)) continue;
+        if (await Url.exists({ url }) || await Article.exists({ url })) continue;
 
         console.log(`📄 Fetching detail: ${url}`);
         const detailRes = await axios.get(url, {
@@ -75,7 +97,7 @@ async function scrapeAlJazeeraNews() {
                 .map(n => n.children?.map(c => c.text).join(''))
                 .join('\n\n');
             image = story?.leadImage?.url || story?.imageUrl || '';
-          } catch {}
+          } catch { }
         }
 
         // Fallback scraping
@@ -99,20 +121,26 @@ async function scrapeAlJazeeraNews() {
             image,
             content,
           };
-         try {
-  await summarizerQueue.add(
-    'summarize',
-    { newArticle },
-    { jobId: url, removeOnComplete: true, removeOnFail: { age: 3600 } }
-  );
-  console.log(`✅ Queued: ${url}`);
-} catch (err) {
-  if (err.message.includes('Job already exists')) {
-    console.log(`⏭️ Duplicate job skipped: ${url}`);
-  } else {
-    throw err;
-  }
-}
+          try {
+            const newUrl = new Url({
+              url
+            });
+
+            await newUrl.save();
+            await summarizerQueue.add(
+              'summarize',
+              { newArticle },
+            );
+
+
+            console.log(`✅ Queued: ${url}`);
+          } catch (err) {
+            if (err.message.includes('Job already exists')) {
+              console.log(`⏭️ Duplicate job skipped: ${url}`);
+            } else {
+              throw err;
+            }
+          }
         } else {
           console.warn(`⚠️ Incomplete: ${url}`);
         }
@@ -127,8 +155,5 @@ async function scrapeAlJazeeraNews() {
   }
 }
 
-// Run immediately and then hourly
-scrapeAlJazeeraNews();
-setInterval(scrapeAlJazeeraNews, 60 * 60 * 1000);
 
 export default scrapeAlJazeeraNews;

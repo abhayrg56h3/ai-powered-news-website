@@ -1,5 +1,14 @@
-
+import { 
+  Newspaper,      // Used for NewsBot logo and signature
+  AlertTriangle,  // Used for breaking news badge
+  BookOpen,       // Used for reading description
+  ExternalLink,   // Used for CTA button
+  Zap,           // Used for urgency message
+  Mail,          // Used for subscription info
+  Bell           // Used for notification info
+} from 'lucide-react'
 import { Worker } from "bullmq";
+import mongoose from 'mongoose';
 import summarizerQueue from "../queues/aiQueue.js";
 import nodemailer from "nodemailer";
 import { getSummarizer } from "../ai-services/summarizer.js";
@@ -12,50 +21,12 @@ import Source from "../models/Source.js";
 import { index } from "../utils/pineconeClient.js";
 import { only } from "node:test";
 import dotenv from "dotenv";
+import Url from "../models/Url.js";
+import { lastExhaustionTime } from "../pool/summarize-pool.js";
 import User from "../models/User.js";
 dotenv.config();
-const topicsList = ["News", "Politics", "Government", "Society", "Culture", "Science", "Technology", "Health", "Education", "Environment", "Economy", "Business", "Finance", "Law", "Crime", "Religion", "Philosophy", "History", "Art", "Media", "Entertainment", "Sports", "Lifestyle", "Travel", "Food", "Fashion", "Beauty", "Parenting", "Relationships", "Psychology", "Self-Improvement", "Animals", "Agriculture", "Energy", "Infrastructure", "Transportation", "Space", "Climate", "Startups", "War", "Peace", "Diplomacy", "Gender", "LGBTQ+", "Race", "Immigration", "Democracy", "Human Rights", "Activism", "Censorship", "Digital Media", "Internet", "Cybersecurity", "Social Media", "Marketing", "Advertising", "Innovation", "Careers", "Work", "Remote Work", "Real Estate", "Stock Market", "Cryptocurrency", "Banking", "Taxes", "Consumerism", "Big Tech", "Data", "Privacy", "Engineering", "Mathematics", "Physics", "Chemistry", "Biology", "Astronomy", "Pharmaceuticals", "Mental Health", "Fitness", "Nutrition", "Diseases", "Pandemics", "Vaccines", "Wellness", "Spirituality", "Justice", "Freedom", "Equality", "Traditions", "Languages", "Literature", "Books", "Film", "Television", "Music", "Dance", "Theatre", "Museums", "Photography", "Architecture", "Design", "Sustainability", "Pollution", "Natural Disasters", "Forests", "Oceans", "Wildlife", "Recycling", "Water", "Electricity", "Aviation", "Railways", "Shipping", "Space Exploration", "International Relations", "Global Organizations", "Public Policy", "Urban Development", "Rural Development", "Security", "Law Enforcement", "Judiciary", "Constitution", "Freedom of Speech", "Nationalism", "Secularism", "Genetics", "Bioethics", "Online Education", "Research", "Universities", "Schools", "Aging", "Inclusion", "Home & Living", "Minimalism", "Hobbies", "Festivals", "Holidays", "Mythology", "Local News", "Regional News", "Global News", "Opinion", "Investigative Journalism"];
-const countries = [
-  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
-  "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain",
-  "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia",
-  "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso",
-  "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic",
-  "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Democratic Republic of the Congo",
-  "Costa Rica", "Côte d'Ivoire", "Croatia", "Cuba", "Cyprus", "Czech Republic", "Denmark",
-  "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador",
-  "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland",
-  "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada",
-  "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary",
-  "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy",
-  "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Korea North",
-  "Korea South", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho",
-  "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar",
-  "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania",
-  "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro",
-  "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands",
-  "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Macedonia", "Norway", "Oman",
-  "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines",
-  "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis",
-  "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe",
-  "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia",
-  "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain",
-  "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan",
-  "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia",
-  "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates",
-  "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Vatican City",
-  "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe", "Palestine", "Kosovo", "Abkhazia",
-  "South Ossetia", "Artsakh", "Transnistria", "Northern Cyprus", "Western Sahara",
-  "Somaliland", "Cook Islands", "Niue", "Åland Islands", "Faroe Islands", "Greenland",
-  "Hong Kong", "Macau", "Kurdistan Region", "Bougainville", "Bangsamoro", "Azores",
-  "Madeira", "Aceh", "Gagauzia", "Mount Athos", "Svalbard", "Jan Mayen", "Rotuma",
-  "Puerto Rico", "Northern Mariana Islands", "Guam", "US Virgin Islands", "American Samoa",
-  "French Polynesia", "New Caledonia", "Saint Martin", "Saint Barthélemy", "Wallis and Futuna",
-  "Mayotte", "Martinique", "French Guiana", "Aruba", "Curacao", "Sint Maarten", "Gibraltar",
-  "Bermuda", "Cayman Islands", "British Virgin Islands", "Montserrat", "Anguilla", "Nevis",
-  "Rodrigues", "Embera-Wounaan", "Kuna Yala", "Ngöbe-Buglé", "Danu", "Kokang", "Naga",
-  "Pa-Laung", "Pa-O", "Wa", "Vojvodina", "Kosovo and Metohija"
-];
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hrs
+
 
 let usersEmail = [];
 
@@ -131,21 +102,100 @@ const transporter = nodemailer.createTransport({
 async function sendBreakingEmail(article, userEmail) {
   const fullUrl = `${process.env.FRONTEND_URL}/articledetail/${article._id}`;
 
-  await transporter.sendMail({
-    from: `"NewsBot 🗞️" <${process.env.GMAIL_ID}>`,
-    to: userEmail,
-    subject: `🚨 BREAKING: ${article.title}`,
-    html: `
-      <div style="font-family:Arial, sans-serif;">
-        <h2>${article.title}</h2>
-        <p>📰 Click below to read the full story:</p>
-        <a href="${fullUrl}" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-          🔗 Read More
-        </a>
-        <p style="margin-top:20px;">Stay informed,<br><strong>NewsBot 🗞️</strong></p>
+ await transporter.sendMail({
+  from: `"NewsBot 🗞️" <${process.env.GMAIL_ID}>`,
+  to: userEmail,
+  subject: `BREAKING: ${article.title}`,
+  html: `
+    <div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; line-height: 1.6; color: #333;">
+      
+      <!-- Header with gradient background -->
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; border-radius: 12px 12px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+          NewsBot
+        </h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 16px; font-weight: 500;">
+          Breaking News Alert
+        </p>
       </div>
-    `,
-  });
+
+      <!-- Main content area -->
+      <div style="background: white; padding: 40px 30px; border-left: 1px solid #e1e5e9; border-right: 1px solid #e1e5e9;">
+        
+        <!-- Breaking news badge -->
+        <div style="display: inline-block; background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(238, 90, 36, 0.3);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="m12 17 .01 0"/></svg>
+          Breaking News
+        </div>
+
+        <!-- Article title -->
+        <h2 style="color: #2c3e50; font-size: 24px; font-weight: 700; line-height: 1.3; margin: 0 0 20px 0; border-left: 4px solid #667eea; padding-left: 16px;">
+          ${article.title}
+        </h2>
+
+        <!-- Description/teaser -->
+        <p style="color: #555; font-size: 16px; margin: 0 0 30px 0; line-height: 1.6;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px; color: #667eea;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Stay ahead of the curve with this breaking story. Click below to get the full details and latest updates.
+        </p>
+
+        <!-- Call-to-action button -->
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${fullUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 16px 32px; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: transform 0.2s ease;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Read Full Story
+          </a>
+        </div>
+
+        <!-- Social proof/urgency -->
+        <div style="background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%); border: 1px solid #e8ebff; border-radius: 8px; padding: 20px; margin: 30px 0; text-align: center;">
+          <p style="margin: 0; color: #6b73ff; font-size: 14px; font-weight: 500;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Don't miss out on this developing story
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div style="background: #f8f9fa; padding: 30px 20px; text-align: center; border-radius: 0 0 12px 12px; border: 1px solid #e1e5e9; border-top: none;">
+        
+        <!-- Sign off -->
+        <p style="margin: 0 0 15px 0; color: #6c757d; font-size: 16px;">
+          Stay informed and stay ahead,
+        </p>
+        <p style="margin: 0 0 20px 0; color: #495057; font-size: 18px; font-weight: 700;">
+          <span style="color: #667eea;">NewsBot</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 6px; color: #667eea;"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+        </p>
+
+        <!-- Divider -->
+        <div style="width: 50px; height: 2px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 20px auto;"></div>
+
+        <!-- Footer links/info -->
+        <p style="margin: 15px 0 0 0; color: #868e96; font-size: 12px; line-height: 1.5;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          You're receiving this because you subscribed to breaking news alerts.<br>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          Delivered instantly to keep you informed.
+        </p>
+
+      </div>
+
+      <!-- Mobile responsiveness -->
+      <style>
+        @media only screen and (max-width: 600px) {
+          .container { width: 100% !important; }
+          .content { padding: 20px 15px !important; }
+          .title { font-size: 20px !important; }
+          .button { padding: 14px 24px !important; font-size: 15px !important; }
+        }
+      </style>
+
+    </div>
+  `,
+});
 
   console.log(`📩 Email sent for: ${article.title}`);
 }
@@ -159,24 +209,46 @@ async function sendBreakingEmail(article, userEmail) {
 
 const sourceMap = Object.fromEntries(sourceLogos.map((s) => [s.name, { ...s }]));
 
+
+
+
+
+
+
+
+
 const summarizeWorker = new Worker(
   "summarizerQueue",
+      
 
   async function (task) {
     //  console.log(task.data);
     const newArticle = task.data.newArticle;
     // console.log(task.data);
 
+
+
+      const sinceEx = Date.now() - lastExhaustionTime;
+    if (sinceEx < COOLDOWN_MS) {
+      const retryDelay = COOLDOWN_MS - sinceEx + 1000;
+      console.log(`⏳ Cooling down for another ${Math.ceil(retryDelay/1000)}s, re-queueing…`);
+      await summarizerQueue.add('summarizer', { newArticle }, { delay: retryDelay });
+      return;
+    }
+
+    // 🛑 2) MongoDB readiness check
+    // readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+    if (mongoose.connection.readyState !== 1) {
+      console.log('⚠️ MongoDB not ready, retrying in 5s…');
+      await summarizerQueue.add('summarizer', { newArticle }, { delay: 5000 });
+      return;
+    }
+
     try {
 
 
 
-       const apistatus=await pool.exec("isApiInCooldown",[]);
-      if (apistatus.isCooldown) {
-         const delay = Math.max(0, apistatus.cooldownUntil - Date.now() + 1000);
-  await summarizerQueue.add("summarizer", { newArticle: task.data.newArticle }, { delay });
-  return;
-      }
+    
       // console.log(newArticle)
       const summary = await pool.exec("getSummary", [newArticle.content]);
 
@@ -215,6 +287,11 @@ const summarizeWorker = new Worker(
 
           });
         }
+
+
+
+
+        console.log("✅ finalArticle", finalArticle);
 
 
 
@@ -280,11 +357,12 @@ const summarizeWorker = new Worker(
               name: finalArticle.source,
               logoUrl: matchedSource.logo || "",
             }
-          },
+          }, 
           { upsert: true }
         );
 
-
+     await  Url.findOneAndDelete({ url: newArticle.url });
+        
 
         return summary;
       }

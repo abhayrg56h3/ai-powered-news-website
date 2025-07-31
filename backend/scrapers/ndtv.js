@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio';
 import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
-
+import Url from '../models/Url.js';
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.ndtv.com';
 const agents = [
@@ -63,10 +63,7 @@ async function ndtvNews() {
     for (const article of links) {
       try {
         // Skip if already in DB
-        if (await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url)) {
-          console.log(`🔄 Already processed: ${article.url}`);
-          continue;
-        }
+        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) continue;
 
         console.log(`🔗 Fetching: ${article.url}`);
         const { data: artHtml } = await axios.get(article.url, {
@@ -98,14 +95,13 @@ async function ndtvNews() {
         // Enqueue summarization if valid
         if (article.content.length > 100 && article.image) {
           const newArticle = { ...article, source: 'NDTV' };
+          const newUrl = new Url({
+            url: article.url
+          });
+          await newUrl.save();
           await summarizerQueue.add(
             'summarize',
             { newArticle },
-            {
-              jobId: article.url,           // 🏷️ unique ID
-              removeOnComplete: true,       // ✨ auto‑clean on success
-              removeOnFail: { age: 3600 },  // ⏳ clean failures after 1h
-            }
           );
           console.log(`✅ Enqueued: ${article.title}`);
         } else {
@@ -122,8 +118,5 @@ async function ndtvNews() {
   }
 }
 
-// Run immediately and every hour
-ndtvNews();
-setInterval(ndtvNews, 60 * 60 * 1000);
 
 export default ndtvNews;

@@ -83,8 +83,6 @@ async function reutersNews() {
   }
 }
 
-// 🕒 Run every 10 minutes
-reutersNews();
-setInterval(reutersNews, 10 * 60 * 1000);
+
 
 export default reutersNews;

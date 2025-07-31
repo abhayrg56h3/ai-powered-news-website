@@ -4,7 +4,7 @@ import * as cheerio from 'cheerio';
 import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
-
+import Url from '../models/Url.js';
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.bbc.com';
 const agents = [
@@ -55,7 +55,7 @@ async function scrapeBBCNews() {
     for (const { title, url } of links) {
       try {
         // Skip if already in DB
-        if (await Article.exists({ url }) || await summarizerQueue.getJob(url)) continue;
+        if (await Url.exists({ url }) || await Article.exists({ url })) continue;
 
         console.log(`📄 Fetching detail: ${title}`);
         const detailRes = await axios.get(url, {
@@ -99,14 +99,14 @@ async function scrapeBBCNews() {
         // Queue summarization
         if (content && image) {
           const newArticle = { title, url, source: 'BBC', image, content };
+          const newUrl = new Url({
+            url
+          });
+
+          await newUrl.save();
           await summarizerQueue.add(
             'summarize',
             { newArticle },
-            {
-              jobId: url,              // 🏷️ use URL as the unique ID
-              removeOnComplete: true,  // ✨ auto‑clean when done
-              removeOnFail: { age: 3600 } // ⏳ clean up failures after 1h
-            }
           );
           console.log(`✅ Queued article: ${title}`);
         } else {
@@ -123,8 +123,6 @@ async function scrapeBBCNews() {
   }
 }
 
-// Run immediately and then hourly
-scrapeBBCNews();
-setInterval(scrapeBBCNews, 60 * 60 * 1000);
+
 
 export default scrapeBBCNews;

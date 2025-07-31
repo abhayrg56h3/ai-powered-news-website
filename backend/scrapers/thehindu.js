@@ -6,7 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js';
 import Article from '../models/Article.js';
-
+import Url from '../models/Url.js';
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,8 +63,12 @@ async function theHinduNews() {
     // Process each article sequentially 🚶‍♂️
     for (const article of allArticles) {
       try {
+
         // Skip if already in DB 🔄
-        if (await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url)) continue;
+        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
+          console.log(`🔄 Already exists: ${article.url}`);
+          continue;
+        }
 
         console.log(`🔗 Fetching detail: ${article.url}`);
         const { data: artHtml } = await axios.get(article.url, {
@@ -96,14 +100,11 @@ async function theHinduNews() {
         // Enqueue if valid ✅
         if (article.content && article.image) {
           const newArticle = { ...article, source: 'The Hindu' };
+          const newUrl = new Url({ url: article.url });
+          await newUrl.save();
           await summarizerQueue.add(
             'summarize',
-            { newArticle },
-            {
-              jobId: article.url,           // 🏷️ unique ID
-              removeOnComplete: true,       // ✨ auto‑clean on success
-              removeOnFail: { age: 3600 },  // ⏳ clean failures after 1h
-            }
+            { newArticle }
           );
           console.log(`📤 Enqueued: ${article.title}`);
         } else {
@@ -120,8 +121,5 @@ async function theHinduNews() {
   }
 }
 
-// Run now and then every hour ⏰
-theHinduNews();
-setInterval(theHinduNews, 60 * 60 * 1000);
 
 export default theHinduNews;
