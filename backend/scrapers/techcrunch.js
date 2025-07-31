@@ -8,6 +8,7 @@ import summarizerQueue from '../queues/aiQueue.js';
 import Redis from 'ioredis';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
+import globalLimiter from '../utils/limiter.js';
 
 const limit = pLimit(5);
 
@@ -235,7 +236,7 @@ async function scrapeTechCrunch() {
 
   // FIXED: Changed from newArticles to previews (bug #1)
   const tasks = previews.map(art => 
-    limit(async () => {
+    globalLimiter(async () => {
       try {
         if (await Url.exists({ url: art.url }) || await Article.exists({ url: art.url })) return;
 

@@ -8,6 +8,7 @@ import summarizerQueue from '../queues/aiQueue.js'; // Adjust path as needed
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
+import globalLimiter from '../utils/limiter.js';
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,7 +67,7 @@ async function toiNews() {
     // console.log(`📰 Found ${allArticles.length} article previews`);
 
     // Process each article sequentially 🚶‍♂️
-  const tasks = allArticles.map(article => limit(async () => {
+  const tasks = allArticles.map(article => globalLimiter(async () => {
       try {
         // Skip if already processed 🔄
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {

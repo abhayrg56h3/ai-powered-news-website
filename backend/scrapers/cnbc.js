@@ -6,8 +6,8 @@ import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
+import globalLimiter from '../utils/limiter.js';
 
-const limit = pLimit(5);
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.cnbc.com';
 const agents = [
@@ -64,7 +64,7 @@ async function cnbcNews() {
     const articles = links;
 
     // Process each article sequentially 🚶‍♀️
-  const tasks = articles.map(article => limit(async () => {
+  const tasks = articles.map(article => globalLimiter(async () => {
       try {
         // Skip if already in DB
       if( await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) return;

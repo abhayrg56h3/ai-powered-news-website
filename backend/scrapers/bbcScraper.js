@@ -6,8 +6,7 @@ import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
-// Base URL and User-Agent pool
-const limit = pLimit(5);
+import globalLimiter from '../utils/limiter.js';
 const baseUrl = 'https://www.bbc.com';
 const agents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
@@ -54,7 +53,7 @@ async function scrapeBBCNews() {
     // console.log(`📰 Found ${links.length} articles`);
 
     // Process each link sequentially 🚶‍♂️
-  const tasks = links.map(({ title, url }) => limit(async () => {
+  const tasks = links.map(({ title, url }) => globalLimiter(async () => {
      if (await Url.exists({ url }) || await Article.exists({ url })) return;
       try {
         // Skip if already in DB

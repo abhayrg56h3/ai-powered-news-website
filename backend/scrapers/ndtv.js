@@ -6,6 +6,7 @@ import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
+import globalLimiter from '../utils/limiter.js';
  
 
 const limit = pLimit(5);
@@ -64,7 +65,7 @@ async function ndtvNews() {
     // console.log(`📰 Found ${links.length} candidate links.`);
 
     // Process each article sequentially 🚶‍♂️
-    const tasks = links.map(article => limit(async () => {
+    const tasks = links.map(article => globalLimiter(async () => {
       try {
         // Skip if already in DB
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) return;

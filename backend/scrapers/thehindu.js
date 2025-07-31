@@ -8,6 +8,7 @@ import summarizerQueue from '../queues/aiQueue.js';
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
 import pLimit from 'p-limit';
+import globalLimiter from '../utils/limiter.js';
 // Setup __dirname
 const limit = pLimit(5);
 const __filename = fileURLToPath(import.meta.url);
@@ -63,7 +64,7 @@ async function theHinduNews() {
     // console.log(`📰 Found ${allArticles.length} articles`);
 
     // Process each article sequentially 🚶‍♂️
- const tasks = allArticles.map(article => limit(async () => {
+ const tasks = allArticles.map(article => globalLimiter(async () => {
       try {
 
         // Skip if already in DB 🔄

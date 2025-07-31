@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js';
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
+import globalLimiter from '../utils/limiter.js';
 
 // Concurrency limiter: max 5 at a time
 const limit = pLimit(5);
@@ -63,7 +64,7 @@ async function guardianNews() {
     });
 
     // Process with concurrency limit
-    const tasks = articles.map(article => limit(async () => {
+    const tasks = articles.map(article => globalLimiter(async () => {
       try {
         // Skip if exists
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {

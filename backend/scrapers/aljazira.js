@@ -6,9 +6,10 @@ import pLimit from 'p-limit';
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
 import summarizerQueue from '../queues/aiQueue.js';
+import globalLimiter from '../utils/limiter.js';
 
 // Concurrency limiter: only 5 tasks at a time
-const limit = pLimit(5);
+
 
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.aljazeera.com';
@@ -54,7 +55,7 @@ async function scrapeAlJazeeraNews() {
     });
 
     // Create scraping tasks with concurrency limit
-    const tasks = links.map(url => limit(async () => {
+    const tasks = links.map(url => globalLimiter(async () => {
       // Skip if already processed
       if (await Url.exists({ url }) || await Article.exists({ url })) {
         console.log(`🔗 Already processed: ${url}`);
