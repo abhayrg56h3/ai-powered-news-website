@@ -94,47 +94,58 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => {
+  .then(async () => {
     console.log("✅ Connected to MongoDB");
 
-    // ✅ Start server AFTER Mongo is ready
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
 
-     scrapeBBCNews();
-  scrapeAlJazeeraNews();
-  theHinduNews();
-  toiNews();
-  ndtvNews();
-  cnbcNews();
-  guardianNews();
-  scrapeTechCrunchNews();
+    // 🔄 Define an array of your scraper functions in the order you want
+    const scrapers = [
+      scrapeAlJazeeraNews,
+      scrapeBBCNews,
+      theHinduNews,
+      toiNews,
+      ndtvNews,
+      cnbcNews,
+      guardianNews,
+      scrapeTechCrunchNews
+    ];
 
-    setInterval(() => {
+    // 🔄 A simple helper to run them sequentially
+    async function runAllScrapers() {
+      for (const scraper of scrapers) {
+        try {
+          console.log(`⏱️ Starting ${scraper.name}…`);
+          await scraper();                   // ← wait for this one to finish
+          console.log(`✅ Completed ${scraper.name}!\n`);
+          await new Promise(r => setTimeout(r, 2000));  // optional 2s cooldown
+        } catch (err) {
+          console.error(`❌ ${scraper.name} failed:`, err.message);
+        }
+      }
+      console.log("🛠️ All scrapers done!");
+    }
 
-  scrapeBBCNews();
-  scrapeAlJazeeraNews();
-  theHinduNews();
-  toiNews();
-  ndtvNews();
-  cnbcNews();
-  guardianNews();
-  scrapeTechCrunchNews();
- console.log("🛠️ All scrapers and cron jobs started!");
-}, 3 * 60 * 60 * 1000);
+    // 🚀 First run immediately…
+    await runAllScrapers();
 
+    // …then schedule every 3 hours
+    setInterval(runAllScrapers, 3 * 60 * 60 * 1000);
+
+    // start your crons
     userPreferenceCron.start();
     articleDeletionCron.start();
     dailyCountDeletion.start();
 
-   
   })
   .catch((err) => {
     console.error("❌ MongoDB connection error:", err);
-    process.exit(1); // 🔥 Exit if DB can't connect
+    process.exit(1);
   });
+
 
 mongoose.connection.on("error", (err) => {
   console.log("❌ MongoDB connection error: ", err);
