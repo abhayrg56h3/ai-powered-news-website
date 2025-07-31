@@ -5,6 +5,9 @@ import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import Url from '../models/Url.js';
+import pLimit from 'p-limit';
+
+const limit = pLimit(5);
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.cnbc.com';
 const agents = [
@@ -61,10 +64,10 @@ async function cnbcNews() {
     const articles = links;
 
     // Process each article sequentially 🚶‍♀️
-    for (const article of articles) {
+  const tasks = articles.map(article => limit(async () => {
       try {
         // Skip if already in DB
-      if( await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) continue;
+      if( await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) return;
 
         // console.log(`📥 Fetching page: ${article.url}`);
         const res = await axios.get(article.url, {
@@ -107,7 +110,8 @@ async function cnbcNews() {
       } catch (err) {
         // console.error(`❌ Error processing ${article.url}:`, err.message);
       }
-    }
+    }));  
+    await Promise.all(tasks);
 
     // console.log('🎉 CNBC scraping completed');
   } catch (err) {

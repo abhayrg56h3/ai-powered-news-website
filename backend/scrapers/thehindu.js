@@ -7,7 +7,9 @@ import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js';
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
+import pLimit from 'p-limit';
 // Setup __dirname
+const limit = pLimit(5);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -61,13 +63,13 @@ async function theHinduNews() {
     // console.log(`📰 Found ${allArticles.length} articles`);
 
     // Process each article sequentially 🚶‍♂️
-    for (const article of allArticles) {
+ const tasks = allArticles.map(article => limit(async () => {
       try {
 
         // Skip if already in DB 🔄
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
           // console.log(`🔄 Already exists: ${article.url}`);
-          continue;
+          return;
         }
 
         // console.log(`🔗 Fetching detail: ${article.url}`);
@@ -113,7 +115,9 @@ async function theHinduNews() {
       } catch (err) {
         // console.error(`❌ Error on ${article.url}:`, err.message);
       }
-    }
+    }));
+
+    await Promise.all(tasks);
 
     // console.log('✅ The Hindu scraping completed!');
   } catch (error) {

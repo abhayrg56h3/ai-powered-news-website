@@ -2,11 +2,16 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as cheerio from 'cheerio';
 import https from 'https';
+import pLimit from 'p-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js';
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
+
+// Concurrency limiter: max 5 at a time
+const limit = pLimit(5);
+
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,14 +34,12 @@ axiosRetry(axios, {
     axiosRetry.isNetworkOrIdempotentRequestError(error) || error.code === 'ECONNRESET',
 });
 
-// HTTPS agent
+// HTTPS agent for keep-alive
 const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function guardianNews() {
-  const allArticles = [];
-
   try {
-    // console.log('🌐 Fetching Guardian homepage...');
+    // Fetch homepage
     const { data } = await axios.get(baseUrl, {
       httpsAgent,
       headers: {
@@ -46,52 +49,43 @@ async function guardianNews() {
       },
       timeout: 10000,
     });
-
     const $ = cheerio.load(data);
 
-    // Collect article links
+    // Collect article objects
+    const articles = [];
     $('a.dcr-2yd10d').each((_, el) => {
       const link = $(el).attr('href');
       const title = $(el).attr('aria-label') || $(el).text().trim();
       if (link && title) {
         const url = link.startsWith('http') ? link : new URL(link, baseUrl).href;
-        allArticles.push({ title, url, image: null, content: '' });
+        articles.push({ title, url, content: '', image: null });
       }
     });
 
-    // console.log(`📰 Found ${allArticles.length} articles`);
-
-    // Sequentially process articles 🚶‍♂️
-    for (const article of allArticles) {
+    // Process with concurrency limit
+    const tasks = articles.map(article => limit(async () => {
       try {
-        // Skip if already in DB
+        // Skip if exists
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
-          
-          continue
-          };
-        const exists = await Article.exists({ url: article.url }) || await summarizerQueue.getJob(article.url);
-        if (exists) {
-          // console.log(`🔄 Already exists: ${article.url}`);
-          continue;
+          return;
         }
 
-        // console.log(`📝 Fetching details: ${article.url}`);
+        // Fetch detail page
         const res = await axios.get(article.url, {
           httpsAgent,
           timeout: 10000,
-          headers: {
-            'User-Agent': agents[Math.floor(Math.random() * agents.length)],
-          },
+          headers: { 'User-Agent': agents[Math.floor(Math.random() * agents.length)] },
         });
-
         const $$ = cheerio.load(res.data);
 
+        // Extract paragraphs
         const paras = $$('article p')
           .map((_, p) => $$(p).text().trim())
           .get()
           .filter(t => t.length > 30);
         article.content = paras.join(' ');
 
+        // Extract image from LightboxLayout
         const lightbox = $$('gu-island[name="LightboxLayout"]').attr('props');
         if (lightbox) {
           try {
@@ -102,29 +96,21 @@ async function guardianNews() {
           } catch {}
         }
 
+        // Save & queue if valid
         if (article.content && article.image) {
-          // Save URL to prevent re-fetching
-          const newUrl = new Url({ url: article.url });
-          await newUrl.save();
-
-          await summarizerQueue.add(
-            'summarize',
-            { newArticle: { ...article, source: 'The Guardian' } },
-          );
-          // console.log(`📤 Enqueued summary: ${article.title}`);
-        } else {
-          // console.warn(`⚠️ Skipped (missing content/image): ${article.url}`);
+          await new Url({ url: article.url }).save();
+          await summarizerQueue.add('summarize', { newArticle: { ...article, source: 'The Guardian' } });
         }
       } catch (err) {
-        // console.error(`❌ Error processing ${article.url}:`, err.message);
+        console.error('❌ Error processing', article.url, err.message);
       }
-    }
+    }));
 
-    // console.log('✅ Guardian scraping completed!');
-  } catch (error) {
-    // console.error('🚨 Guardian homepage error:', error.message);
+    await Promise.all(tasks);
+    console.log('✅ Guardian scraping completed');
+  } catch (err) {
+    console.error('🚨 Guardian fetch error:', err.message);
   }
 }
-
 
 export default guardianNews;

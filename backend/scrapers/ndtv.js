@@ -5,6 +5,10 @@ import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import Url from '../models/Url.js';
+import pLimit from 'p-limit';
+ 
+
+const limit = pLimit(5);
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.ndtv.com';
 const agents = [
@@ -60,10 +64,10 @@ async function ndtvNews() {
     // console.log(`📰 Found ${links.length} candidate links.`);
 
     // Process each article sequentially 🚶‍♂️
-    for (const article of links) {
+    const tasks = links.map(article => limit(async () => {
       try {
         // Skip if already in DB
-        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) continue;
+        if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) return;
 
         // console.log(`🔗 Fetching: ${article.url}`);
         const { data: artHtml } = await axios.get(article.url, {
@@ -110,7 +114,8 @@ async function ndtvNews() {
       } catch (err) {
         // console.error(`❌ Error at ${article.url}:`, err.message);
       }
-    }
+    }));
+    await Promise.all(tasks);   
 
     // console.log('🎉 NDTV scraping completed!');
   } catch (err) {

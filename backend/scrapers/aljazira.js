@@ -2,30 +2,13 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import * as cheerio from 'cheerio';
 import https from 'https';
+import pLimit from 'p-limit';
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
 import summarizerQueue from '../queues/aiQueue.js';
 
-
-
-
-
-
-
-
-
-// Cleanup function to remove old entries
-function cleanupUrlCache() {
-  const now = Date.now();
-  for (const [url, timestamp] of urlTimestamps.entries()) {
-    if (now - timestamp > URL_CACHE_TTL) {
-      urlTimestamps.delete(url);
-      recentUrls.delete(url);
-    }
-  }
-}
-
-
+// Concurrency limiter: only 5 tasks at a time
+const limit = pLimit(5);
 
 // Base URL and User-Agent pool
 const baseUrl = 'https://www.aljazeera.com';
@@ -50,7 +33,7 @@ const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 10 });
 
 async function scrapeAlJazeeraNews() {
   try {
-    // console.log('🌐 Fetching Al Jazeera news list...');
+    // Fetch the news list
     const listRes = await axios.get(`${baseUrl}/news/`, {
       httpsAgent,
       headers: {
@@ -61,20 +44,25 @@ async function scrapeAlJazeeraNews() {
     });
     const $ = cheerio.load(listRes.data);
 
+    // Collect article URLs
     const links = [];
     $('article.u-clickable-card').each((_, el) => {
       const href = $(el).find('a.u-clickable-card__link').attr('href');
-      if (href && !href.includes('/liveblog/')) links.push(baseUrl + href);
+      if (href && !href.includes('/liveblog/')) {
+        links.push(baseUrl + href);
+      }
     });
-    // console.log(`📰 Found ${links.length} articles`);
 
-    // Process each link sequentially 🚶‍♂️
-    for (const url of links) {
+    // Create scraping tasks with concurrency limit
+    const tasks = links.map(url => limit(async () => {
+      // Skip if already processed
+      if (await Url.exists({ url }) || await Article.exists({ url })) {
+        console.log(`🔗 Already processed: ${url}`);
+        return;
+      }
+
       try {
-        // Skip if already in DB
-        if (await Url.exists({ url }) || await Article.exists({ url })) continue;
-
-        // console.log(`📄 Fetching detail: ${url}`);
+        // Fetch article detail
         const detailRes = await axios.get(url, {
           httpsAgent,
           headers: {
@@ -85,35 +73,39 @@ async function scrapeAlJazeeraNews() {
         });
         const $$ = cheerio.load(detailRes.data);
 
-        // Parse JSON data
+        // Parse JSON data for content and image
         const raw = $$('#__NEXT_DATA__').html();
-        let content = '', image = '';
+        let content = '';
+        let image = '';
+
         if (raw) {
           try {
             const data = JSON.parse(raw);
             const story = data.props.pageProps.story || data.props.pageProps.article;
-            if (story?.body)
+            if (story?.body) {
               content = story.body
                 .map(n => n.children?.map(c => c.text).join(''))
                 .join('\n\n');
+            }
             image = story?.leadImage?.url || story?.imageUrl || '';
-          } catch { }
+          } catch {}
         }
 
-        // Fallback scraping
-        if (!content)
+        // Fallback scraping if JSON parse fails
+        if (!content) {
           content = $$('div.wysiwyg p')
             .map((_, p) => $$(p).text().trim())
             .get()
             .join('\n\n');
-        if (!image)
-          image =
-            $$('meta[property="og:image"]').attr('content') ||
-            $$('figure img').first().attr('src') ||
-            '';
-        if (image.startsWith('/')) image = baseUrl + image;
+        }
+        if (!image) {
+          image = $$('meta[property="og:image"]').attr('content') || $$('figure img').first().attr('src') || '';
+          if (image.startsWith('/')) image = baseUrl + image;
+        }
 
+        // If valid article, save URL and queue summary job
         if (content && image) {
+          await new Url({ url }).save();
           const newArticle = {
             title: $$('h1').text().trim(),
             url,
@@ -121,39 +113,19 @@ async function scrapeAlJazeeraNews() {
             image,
             content,
           };
-          try {
-            const newUrl = new Url({
-              url
-            });
-
-            await newUrl.save();
-            await summarizerQueue.add(
-              'summarize',
-              { newArticle },
-            );
-
-
-            // console.log(`✅ Queued: ${url}`);
-          } catch (err) {
-            if (err.message.includes('Job already exists')) {
-              // console.log(`⏭️ Duplicate job skipped: ${url}`);
-            } else {
-              throw err;
-            }
-          }
-        } else {
-          // console.warn(`⚠️ Incomplete: ${url}`);
+          await summarizerQueue.add('summarize', { newArticle });
         }
       } catch (err) {
-        // console.error(`❌ Error processing ${url}:`, err.message);
+        console.error('❌ Error processing', url, err.message);
       }
-    }
+    }));
 
-    // console.log('✅ Al Jazeera scraping done');
+    // Execute tasks
+    await Promise.all(tasks);
+    console.log('✅ Al Jazeera scraping done');
   } catch (err) {
-    // console.error('🚨 Fetch error:', err.message);
+    console.error('🚨 Fetch list error:', err.message);
   }
 }
-
 
 export default scrapeAlJazeeraNews;

@@ -36,9 +36,9 @@ async function loadUsersEmail() {
   try {
     const users = await User.find({}, 'email');
     usersEmail = users.map(u => u.email);
-    console.log("✅ Loaded user emails for breaking notifications.");
+    // console.log("✅ Loaded user emails for breaking notifications.");
   } catch (error) {
-    console.error("❌ Error loading user emails:", error);
+    // console.error("❌ Error loading user emails:", error);
   }
 }
 loadUsersEmail();
@@ -197,7 +197,7 @@ async function sendBreakingEmail(article, userEmail) {
   `,
   });
 
-  console.log(`📩 Email sent for: ${article.title}`);
+  // console.log(`📩 Email sent for: ${article.title}`);
 }
 
 
@@ -230,7 +230,7 @@ const summarizeWorker = new Worker(
 
 
     if (mongoose.connection.readyState !== 1) {
-      console.log('⚠️ MongoDB not ready, retrying in 5s…');
+      // console.log('⚠️ MongoDB not ready, retrying in 5s…');
       await summarizerQueue.add('summarizer', { newArticle }, { delay: 5000 });
       return;
     }
@@ -238,7 +238,7 @@ const summarizeWorker = new Worker(
       const record=await DailyCount.findOne({ date: new Date().toISOString().split('T')[0] });
           if( record && record.count >= 100) {
             await summarizerQueue.add('summarizer', { newArticle }, { delay: 1000 * 60 *60 * 24  }); // Retry after 24 hours
-        console.log("❌ Daily limit reached, skipping article:", newArticle.title);
+        // console.log("❌ Daily limit reached, skipping article:", newArticle.title);
         return;
       }
     try {
@@ -271,7 +271,7 @@ const summarizeWorker = new Worker(
           tags,
           embedding
         });
-        console.log("finalAticle", finalArticle);
+        // console.log("finalAticle", finalArticle);
 
         const onlyEnglish = str => /^[A-Za-z\s]+$/.test(str);
 
@@ -288,7 +288,7 @@ const summarizeWorker = new Worker(
 
 
 
-        console.log("✅ finalArticle", finalArticle);
+        // console.log("✅ finalArticle", finalArticle);
 
 
 
@@ -319,7 +319,7 @@ const summarizeWorker = new Worker(
           }
         ]);
 
-        console.log(`✅ Upserted article to Pinecone: ${finalArticle.title}`);
+        // console.log(`✅ Upserted article to Pinecone: ${finalArticle.title}`);
 
         await Region.findOneAndUpdate(
           { name: region },
@@ -376,7 +376,7 @@ const summarizeWorker = new Worker(
         return summary;
       }
     } catch (err) {
-      console.error(`Failed to save article ${newArticle.url}:`, err);
+      // console.error(`Failed to save article ${newArticle.url}:`, err);
       throw err;
     }
   },

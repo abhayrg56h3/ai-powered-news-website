@@ -5,7 +5,9 @@ import https from 'https';
 import Article from '../models/Article.js';
 import summarizerQueue from '../queues/aiQueue.js';
 import Url from '../models/Url.js';
+import pLimit from 'p-limit';
 // Base URL and User-Agent pool
+const limit = pLimit(5);
 const baseUrl = 'https://www.bbc.com';
 const agents = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/114.0.0.0 Safari/537.36',
@@ -52,10 +54,11 @@ async function scrapeBBCNews() {
     // console.log(`📰 Found ${links.length} articles`);
 
     // Process each link sequentially 🚶‍♂️
-    for (const { title, url } of links) {
+  const tasks = links.map(({ title, url }) => limit(async () => {
+     if (await Url.exists({ url }) || await Article.exists({ url })) return;
       try {
         // Skip if already in DB
-        if (await Url.exists({ url }) || await Article.exists({ url })) continue;
+       
 
         // console.log(`📄 Fetching detail: ${title}`);
         const detailRes = await axios.get(url, {
@@ -115,7 +118,9 @@ async function scrapeBBCNews() {
       } catch (err) {
         // console.error(`❌ Error processing ${url}:`, err.message);
       }
-    }
+    }));
+
+      await Promise.all(tasks);
 
     // console.log('✅ BBC scraping completed!');
   } catch (err) {

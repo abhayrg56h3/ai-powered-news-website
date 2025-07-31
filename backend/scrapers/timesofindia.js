@@ -7,10 +7,11 @@ import { fileURLToPath } from 'url';
 import summarizerQueue from '../queues/aiQueue.js'; // Adjust path as needed
 import Article from '../models/Article.js';
 import Url from '../models/Url.js';
+import pLimit from 'p-limit';
 // Setup __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
+const limit = pLimit(5);
 // 🔗 Base URL and User-Agent pool
 const baseUrl = 'https://timesofindia.indiatimes.com/';
 const agents = [
@@ -65,12 +66,12 @@ async function toiNews() {
     // console.log(`📰 Found ${allArticles.length} article previews`);
 
     // Process each article sequentially 🚶‍♂️
-    for (const article of allArticles) {
+  const tasks = allArticles.map(article => limit(async () => {
       try {
         // Skip if already processed 🔄
         if (await Url.exists({ url: article.url }) || await Article.exists({ url: article.url })) {
           // console.log(`🔄 Already exists: ${article.url}`);
-          continue;
+          return;
         }
 
         // console.log(`📄 Fetching detail: ${article.title}`);
@@ -115,7 +116,8 @@ async function toiNews() {
       } catch (err) {
         // console.error(`❌ Detail fetch error: ${article.url}`, err.message);
       }
-    }
+    }));
+    await Promise.all(tasks);
 
     // console.log('✅ TOI scraping completed successfully.');
   } catch (error) {
