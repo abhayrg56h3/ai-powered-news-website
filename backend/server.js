@@ -136,7 +136,7 @@ mongoose
     setInterval(runAllScrapers, 3 * 60 * 60 * 1000);
 
     // start your crons
-    userPreferenceCron.start();
+    userPreferenceCron.start(); 
     articleDeletionCron.start();
     dailyCountDeletion.start();
 

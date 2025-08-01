@@ -19,7 +19,7 @@ const a4fClient = new OpenAI({
 async function isBreakingNews(articleText) {
   try {
     const response = await a4fClient.chat.completions.create({
-      model: "provider-2/gpt-3.5-turbo",
+      model: "provider-6/gpt-4.1",
       messages: [
         {
           role: "system",
@@ -54,27 +54,14 @@ Only respond with a number (0 to 100). Output must be a number. No explanations.
   }
 }
 
-const MAX_CHUNK_LENGTH = 800;
 
-function splitIntoChunks(text, maxLen = MAX_CHUNK_LENGTH) {
-  const chunks = [];
-  let start = 0;
-  while (start < text.length) {
-    let end = start + maxLen;
-    const periodIndex = text.lastIndexOf(".", end);
-    if (periodIndex > start) {
-      end = periodIndex + 1;
-    }
-    chunks.push(text.slice(start, end).trim());
-    start = end;
-  }
-  return chunks;
-}
+
+
 
 async function summarizeChunk(text) {
   try {
     const response = await a4fClient.chat.completions.create({
-      model: "provider-2/gpt-3.5-turbo",
+      model: "provider-6/gpt-4.1",
       messages: [
         {
           role: "system",
@@ -152,7 +139,7 @@ async function getTopic(articleText) {
 
   try {
     const response = await a4fClient.chat.completions.create({
-      model: "provider-2/gpt-3.5-turbo",
+      model: "provider-6/gpt-4.1",
       messages: [
         {
           role: "system",
@@ -226,7 +213,7 @@ async function getRegion(articleText) {
 
   try {
     const response = await a4fClient.chat.completions.create({
-      model: "provider-2/gpt-3.5-turbo",
+      model: "provider-6/gpt-4.1",
       messages: [
         {
           role: "system",
@@ -296,7 +283,7 @@ async function getSentiment(articleText) {
 async function getTags(articleText) {
   try {
     const response = await a4fClient.chat.completions.create({
-      model: "provider-2/gpt-3.5-turbo",
+      model: "provider-6/gpt-4.1",
       messages: [
         {
           role: "system",
