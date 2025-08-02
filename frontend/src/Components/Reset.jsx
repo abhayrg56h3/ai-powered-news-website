@@ -22,7 +22,7 @@ export default function Reset() {
             return;
         }
         try {
-            const response = await axios.post(`/api/auth/reset/${token}`, { password: newPassword });
+            const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/reset/${token}`, { password: newPassword });
             console.log(response.data);
             alert("Password reset successful");
             navigate("/login");
